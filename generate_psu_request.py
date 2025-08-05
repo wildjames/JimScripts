@@ -32,9 +32,23 @@ def iso_now():
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
+def canonical_business_status(raw: str) -> str:
+    """
+    Map a case-insensitive input to one of the canonical BUSINESS_STATUS_CHOICES.
+    Raises ValueError if no match.
+    """
+    raw_lower = raw.strip().lower()
+    for choice in BUSINESS_STATUS_CHOICES:
+        if choice.lower() == raw_lower:
+            return choice
+    raise ValueError(f"Invalid business-status '{raw}'. Must be one of: {', '.join(BUSINESS_STATUS_CHOICES)}")
+
+
 def build_bundle(args):
+    # Map to canonical casing
+    bs = canonical_business_status(args.business_status)
     # Determine Task.status
-    status = "completed" if args.business_status in TERMINAL_STATUSES else "in-progress"
+    status = "completed" if bs in TERMINAL_STATUSES else "in-progress"
 
     task_id = str(uuid.uuid4())
 
@@ -60,7 +74,7 @@ def build_bundle(args):
                         "coding": [
                             {
                                 "system": "https://fhir.nhs.uk/CodeSystem/task-businessStatus-nppt",
-                                "code": args.business_status
+                                "code": bs
                             }
                         ]
                     },
@@ -102,8 +116,7 @@ def main():
     parser.add_argument(
         "--business-status",
         required=True,
-        choices=BUSINESS_STATUS_CHOICES,
-        help="One of: " + "┃".join(BUSINESS_STATUS_CHOICES)
+        help="One of: " + "┃".join(BUSINESS_STATUS_CHOICES) + " (case-insensitive)"
     )
     parser.add_argument(
         "--order-number",
@@ -134,16 +147,17 @@ def main():
 
     try:
         bundle = build_bundle(args)
-    except Exception as e:
-        print(f"Error building Bundle: {e}", file=sys.stderr)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     print(json.dumps(bundle, indent=2))
 
-    print("\n\n")
 
     pyperclip.copy(json.dumps(bundle, indent=2))
+    print("\n\n------------------------------------")
     print("-->> Bundle copied to clipboard <<--")
+    print("------------------------------------")
 
 
 
