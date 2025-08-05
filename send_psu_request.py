@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
 """
-send_psu.py
-
 A script to perform a Prescription Status Update (PSU) request.
 Loads environment variables from a .env file:
   - PRIVATE_KEY (PEM contents) or PRIVATE_KEY_PATH (path to PEM file)
-  - API_KEY (your integration testing application API key)
-  - HOST (e.g. api.integration.nhs.uk)
-  - KID (key ID for the JWT header)
-
-Usage:
-  pip install python-dotenv requests pyjwt
-  cp .env.example .env     # fill in your values
-  python send_psu.py -i bundle.json
-
-If -i/--input is omitted, reads the JSON bundle from STDIN.
+  - API_KEY (APIM application API key)
+  - HOST (e.g. internal-dev.api.service.nhs.uk)
+  - KID (key ID from APIM portal)
 """
+
+
 import os
 import sys
 import time
@@ -35,15 +28,13 @@ def load_private_key():
     if path and os.path.isfile(path):
         with open(path, 'r') as f:
             return f.read()
-    sys.stderr.write("Error: set PRIVATE_KEY or PRIVATE_KEY_PATH in your .env\n")
-    sys.exit(1)
+    raise ValueError("set PRIVATE_KEY or PRIVATE_KEY_PATH in your .env")
 
 
 def get_env(var: str):
     val = os.getenv(var)
     if not val:
-        sys.stderr.write(f"Error: {var} not set in .env\n")
-        sys.exit(1)
+        raise ValueError(f"{var} not set in .env")
     return val
 
 

@@ -1,7 +1,12 @@
 import uuid
-from typing import Any
+from typing import Any, Dict, Optional
+import pyperclip
+import json
 
 from utils.utils import iso_now
+
+# Following the spec from here:
+# https://digital.nhs.uk/developer/api-catalogue/prescription-status-update-fhir#post-/
 
 # Allowed NPPT business status values (canonical casing)
 BUSINESS_STATUS_CHOICES = [
@@ -101,3 +106,20 @@ def build_bundle(
         ]
     }
     return bundle
+
+
+def output_bundle(
+    bundle: Dict[str, Any],
+    to_clip: bool,
+    filepath: Optional[str]
+):
+    serialized = json.dumps(bundle, indent=2)
+    if to_clip:
+        pyperclip.copy(serialized)
+        print("Bundle copied to clipboard.")
+    if filepath:
+        with open(filepath, 'w') as f:
+            f.write(serialized)
+        print(f"Bundle saved to {filepath}")
+    if not to_clip and not filepath:
+        print(serialized)

@@ -13,4 +13,3 @@ def load_collection_entries(body: Dict[str, Any]) -> List[Dict[str, Any]]:
         pass
 
     raise ValueError("Error: Unable to locate the inner collection bundle in input.")
-

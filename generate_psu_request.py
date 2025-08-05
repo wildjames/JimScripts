@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 
-# Following the spec from here:
-# https://digital.nhs.uk/developer/api-catalogue/prescription-status-update-fhir#post-/
-
 import argparse
-import json
-import sys
-import pyperclip
 
-from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_bundle
+from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_bundle, output_bundle
 
 
 def main():
@@ -44,30 +38,29 @@ def main():
         "--last-modified",
         help="Override lastModified timestamp (ISO-8601 UTC, defaults to now)"
     )
+    parser.add_argument(
+        '-c', '--clipboard',
+        action='store_true',
+        help='Copy the generated bundle to clipboard instead of printing.'
+    )
+    parser.add_argument(
+        '-o', '--output',
+        metavar='FILE',
+        help='File path to save the bundle; prints to STDOUT if omitted.'
+    )
 
     args = parser.parse_args()
 
-    try:
-        bundle = build_bundle(
-            business_status=args.business_status,
-            order_number=args.order_number,
-            order_item_number=args.order_item_number,
-            nhs_number=args.nhs_number,
-            ods_code=args.ods_code,
-            last_modified=args.last_modified
-        )
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    bundle = build_bundle(
+        business_status=args.business_status,
+        order_number=args.order_number,
+        order_item_number=args.order_item_number,
+        nhs_number=args.nhs_number,
+        ods_code=args.ods_code,
+        last_modified=args.last_modified
+    )
 
-    print(json.dumps(bundle, indent=2))
-
-    # Copy to clipboard
-    pyperclip.copy(json.dumps(bundle, indent=2))
-    print("\n\n------------------------------------")
-    print("-->> Bundle copied to clipboard <<--")
-    print("------------------------------------")
-
+    output_bundle(bundle, args.clipboard, args.output)
 
 
 if __name__ == "__main__":
