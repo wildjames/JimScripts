@@ -21,7 +21,7 @@ def calculate_check_digit(nine_digits: str) -> int:
         ValueError: If any character in nine_digits is not a digit, or if the computed check digit is invalid (i.e., 10).
     """
     if len(nine_digits) != 9 or not nine_digits.isdigit():
-        raise ValueError("Input must be exactly 9 digits.")
+        raise ValueError(f"Input must be exactly 9 digits. Got {len(nine_digits)}")
 
     total = sum(int(d) * w for d, w in zip(nine_digits, WEIGHTS))
     remainder = total % 11

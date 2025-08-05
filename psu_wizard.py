@@ -5,14 +5,23 @@ import json
 import sys
 from typing import Any, Dict, List, Optional
 
+from dotenv import load_dotenv
+
 from utils.psu_requests import (
     BUSINESS_STATUS_CHOICES,
     canonical_business_status,
     build_bundle,
-    output_bundle
+    obtain_access_token,
+    send_psu
 )
 from utils.pfp_requests import load_collection_entries
-from utils.utils import iso_now, find_default_ods
+from utils.utils import (
+    get_env,
+    iso_now,
+    find_default_ods,
+    load_private_key,
+    output_bundle
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,6 +41,11 @@ def parse_args() -> argparse.Namespace:
         '-o', '--output',
         metavar='FILE',
         help='File path to save the bundle; prints to STDOUT if omitted.'
+    )
+    parser.add_argument(
+        '-s', '--send',
+        action='store_true',
+        help='Send the bundle to the PSU endpoint'
     )
     return parser.parse_args()
 
@@ -103,7 +117,28 @@ def main():
         last_modified=lm
     )
 
-    output_bundle(bundle, args.clipboard, args.output)
+
+    if args.send:
+        load_dotenv()
+        host = get_env('HOST')
+        api_key = get_env('API_KEY')
+        kid = get_env('KID')
+        private_key = load_private_key()
+
+        print(f"Sending bundle to {host}...")
+
+        token = obtain_access_token(host, api_key, kid, private_key)
+        resp, rid, cid = send_psu(host, token, bundle)
+
+        print(f"Request ID: {rid}")
+        print(f"Correlation ID: {cid}")
+        print(f"Response: {resp.status_code} {resp.reason}")
+        try:
+            print(json.dumps(resp.json(), indent=2))
+        except ValueError:
+            print(resp.text)
+    else:
+        output_bundle(bundle, args.clipboard, args.output)
 
 
 if __name__ == '__main__':

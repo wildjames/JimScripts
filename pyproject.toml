@@ -1,7 +1,7 @@
 [project]
 name = "scripts"
 version = "0.1.0"
-description = "EPS helper scriptd"
+description = "EPS helper scripts"
 authors = [
     {name = "Jim Wild",email = "james.wild6@nhs.net"}
 ]

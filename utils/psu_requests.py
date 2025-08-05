@@ -1,7 +1,8 @@
 import uuid
-from typing import Any, Dict, Optional
-import pyperclip
-import json
+from typing import Any
+import time
+import requests
+import jwt
 
 from utils.utils import iso_now
 
@@ -108,18 +109,49 @@ def build_bundle(
     return bundle
 
 
-def output_bundle(
-    bundle: Dict[str, Any],
-    to_clip: bool,
-    filepath: Optional[str]
-):
-    serialized = json.dumps(bundle, indent=2)
-    if to_clip:
-        pyperclip.copy(serialized)
-        print("Bundle copied to clipboard.")
-    if filepath:
-        with open(filepath, 'w') as f:
-            f.write(serialized)
-        print(f"Bundle saved to {filepath}")
-    if not to_clip and not filepath:
-        print(serialized)
+
+def obtain_access_token(host: str, api_key: str, kid: str, private_key: str) -> str:
+    auth_url = f"https://{host}/oauth2/token"
+    # JWT header & payload
+    header = { 'typ': 'JWT', 'alg': 'RS512', 'kid': kid }
+    now = int(time.time())
+    payload: dict[str, Any] = {
+        'sub': api_key,
+        'iss': api_key,
+        'jti': str(uuid.uuid4()),
+        'aud': auth_url,
+        'exp': now + 180
+    }
+    assertion: str = jwt.encode(
+        payload,
+        private_key,
+        algorithm='RS512',
+        headers=header
+    )
+    # Request token
+    resp = requests.post(
+        auth_url,
+        headers={ 'Content-Type': 'application/x-www-form-urlencoded' },
+        data={
+            'grant_type': 'client_credentials',
+            'client_assertion_type': 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
+            'client_assertion': assertion
+        }
+    )
+    resp.raise_for_status()
+    return resp.json().get('access_token')
+
+
+def send_psu(host: str, token: str, bundle: str | dict[str, Any]) -> tuple[requests.Response, str, str]:
+    url = f"https://{host}/prescription-status-update/"
+    # x-request-id & x-correlation-id
+    request_id = str(uuid.uuid4())
+    correlation_id = str(uuid.uuid4())
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'Content-Type': 'application/json',
+        'x-request-id': request_id,
+        'x-correlation-id': correlation_id
+    }
+    resp = requests.post(url, headers=headers, json=bundle)
+    return resp, request_id, correlation_id

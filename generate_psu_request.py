@@ -2,7 +2,8 @@
 
 import argparse
 
-from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_bundle, output_bundle
+from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_bundle
+from utils.utils import output_bundle
 
 
 def main():
