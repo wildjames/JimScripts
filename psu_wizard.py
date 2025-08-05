@@ -4,42 +4,13 @@ import argparse
 import json
 import sys
 import uuid
-import datetime
-from typing import Dict, Any, List
+from typing import Dict, Any
 import pyperclip
 
-# Allowed NPPT business status values (canonical casing)
-BUSINESS_STATUS_CHOICES = [
-    "With Pharmacy",
-    "With Pharmacy - Preparing Remainder",
-    "Ready to Collect",
-    "Ready to Collect - Partial",
-    "Collected",
-    "Dispatched",
-    "Not Dispensed",
-    "Ready to Dispatch",
-    "Ready to Dispatch - Partial"
-]
+from utils.psu_requests import BUSINESS_STATUS_CHOICES, TERMINAL_STATUSES, canonical_business_status
+from utils.pfp_requests import load_collection_entries
+from utils.utils import iso_now
 
-# Terminal statuses trigger Task.status = "completed"
-TERMINAL_STATUSES = {"Collected", "Dispatched", "Not Dispensed"}
-
-
-def iso_now():
-    """Current UTC timestamp in ISO-8601 (seconds precision) with Z."""
-    return datetime.datetime.now().replace(microsecond=0).isoformat() + "Z"
-
-
-def canonical_business_status(raw: str) -> str:
-    """
-    Case-insensitive match of raw input to one of the canonical choices.
-    Raises ValueError on no match.
-    """
-    rl = raw.strip().lower()
-    for choice in BUSINESS_STATUS_CHOICES:
-        if choice.lower() == rl:
-            return choice
-    raise ValueError(f"Invalid business status '{raw}'. Choose from: {', '.join(BUSINESS_STATUS_CHOICES)}")
 
 
 def prompt_business_status():
@@ -56,20 +27,6 @@ def prompt_business_status():
     return canonical_business_status(raw)
 
 
-def load_collection_entries(body: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """
-    Given the top-level PfP response JSON, return the inner 'collection' entries list.
-    """
-    try:
-        top = body['entry'][0]['resource']
-        if top.get('resourceType') == 'Bundle' and top.get('type') == 'collection':
-            return top['entry']
-    except (KeyError, IndexError, TypeError):
-        pass
-    print("Error: Unable to locate the inner collection bundle in input." , file=sys.stderr)
-    sys.exit(1)
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Wizard to build a FHIR Task bundle response based on a PfP fetch result."
@@ -77,6 +34,18 @@ def main():
     parser.add_argument(
         '-i', '--input',
         help='Path to JSON file containing the PfP response bundle. If omitted, reads STDIN.'
+    )
+    parser.add_argument(
+        "-c", "--clipboard", action="store_true",
+        help="Copy the generated bundle to clipboard instead of printing it."
+    )
+    parser.add_argument(
+        "-o", "--output",
+        required=False,
+        metavar="FILE",
+        default=None,
+        type=str,
+        help="Path to save the generated bundle JSON. If omitted, prints to STDOUT."
     )
     args = parser.parse_args()
 
@@ -179,12 +148,18 @@ def main():
 
     print(json.dumps(bundle, indent=2))
 
-    # Copy to clipboard
-    pyperclip.copy(json.dumps(bundle, indent=2))
-    print("\n\n------------------------------------")
-    print("-->> Bundle copied to clipboard <<--")
-    print("------------------------------------")
+    if args.clipboard:
+        # Copy to clipboard
+        pyperclip.copy(json.dumps(bundle, indent=2))
+        print("\n\n------------------------------------")
+        print("-->> Bundle copied to clipboard <<--")
+        print("------------------------------------")
 
+    if args.output:
+        # Save to file
+        with open(args.output, 'w') as f:
+            json.dump(bundle, f, indent=2)
+        print(f"Bundle saved to {args.output}")
 
 
 if __name__ == "__main__":

@@ -1,112 +1,14 @@
 #!/usr/bin/env python3
 
-import argparse
-import uuid
-import datetime
-import json
-import sys
-import pyperclip
-from typing import Any
-
 # Following the spec from here:
 # https://digital.nhs.uk/developer/api-catalogue/prescription-status-update-fhir#post-/
 
-# The nine allowed businessStatus codes
-BUSINESS_STATUS_CHOICES = [
-    "With Pharmacy",
-    "With Pharmacy - Preparing Remainder",
-    "Ready to Collect",
-    "Ready to Collect - Partial",
-    "Collected",
-    "Dispatched",
-    "Not Dispensed",
-    "Ready to Dispatch",
-    "Ready to Dispatch - Partial"
-]
+import argparse
+import json
+import sys
+import pyperclip
 
-# Terminal statuses: when reached, no further patient action is required
-TERMINAL_STATUSES = {"Collected", "Dispatched", "Not Dispensed"}
-
-
-def iso_now():
-    """Return current UTC timestamp in ISO-8601 with 'Z' suffix (seconds precision)."""
-    return datetime.datetime.now().replace(microsecond=0).isoformat() + "Z"
-
-
-def canonical_business_status(raw: str) -> str:
-    """
-    Map a case-insensitive input to one of the canonical BUSINESS_STATUS_CHOICES.
-    Raises ValueError if no match.
-    """
-    raw_lower = raw.strip().lower()
-    for choice in BUSINESS_STATUS_CHOICES:
-        if choice.lower() == raw_lower:
-            return choice
-    raise ValueError(f"Invalid business-status '{raw}'. Must be one of: {', '.join(BUSINESS_STATUS_CHOICES)}")
-
-
-def build_bundle(args: argparse.Namespace):
-    # Map to canonical casing
-    bs = canonical_business_status(args.business_status)
-    # Determine Task.status
-    status = "completed" if bs in TERMINAL_STATUSES else "in-progress"
-
-    task_id = str(uuid.uuid4())
-    bundle: dict[str, Any] = {
-        "resourceType": "Bundle",
-        "type": "transaction",
-        "entry": [
-            {
-                "fullUrl": f"urn:uuid:{task_id}",
-                "resource": {
-                    "resourceType": "Task",
-                    "id": task_id,
-                    "basedOn": [
-                        {
-                            "identifier": {
-                                "system": "https://fhir.nhs.uk/Id/prescription-order-number",
-                                "value": args.order_number
-                            }
-                        }
-                    ],
-                    "status": status,
-                    "businessStatus": {
-                        "coding": [
-                            {
-                                "system": "https://fhir.nhs.uk/CodeSystem/task-businessStatus-nppt",
-                                "code": bs
-                            }
-                        ]
-                    },
-                    "intent": "order",
-                    "focus": {
-                        "identifier": {
-                            "system": "https://fhir.nhs.uk/Id/prescription-order-item-number",
-                            "value": args.order_item_number
-                        }
-                    },
-                    "for": {
-                        "identifier": {
-                            "system": "https://fhir.nhs.uk/Id/nhs-number",
-                            "value": args.nhs_number
-                        }
-                    },
-                    "lastModified": args.last_modified or iso_now(),
-                    "owner": {
-                        "identifier": {
-                            "system": "https://fhir.nhs.uk/Id/ods-organization-code",
-                            "value": args.ods_code
-                        }
-                    }
-                },
-                "request": {
-                    "method": "POST",
-                    "url": "Task"
-                }
-            }
-        ]
-    }
-    return bundle
+from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_bundle
 
 
 def main():
@@ -146,7 +48,14 @@ def main():
     args = parser.parse_args()
 
     try:
-        bundle = build_bundle(args)
+        bundle = build_bundle(
+            business_status=args.business_status,
+            order_number=args.order_number,
+            order_item_number=args.order_item_number,
+            nhs_number=args.nhs_number,
+            ods_code=args.ods_code,
+            last_modified=args.last_modified
+        )
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
