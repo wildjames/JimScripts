@@ -29,7 +29,7 @@ def generate_order_number(ods_code: str) -> str:
 
 def create_message_bundle(nhs_number: str, pharmacy_ods: str, count: int) -> Dict[str, Any]:
     # GP practice details (hardcoded example)
-    gp_ods = "A83008"
+    gp_ods = generate_ODS_code(6)
     gp_name = "HALLGARTH SURGERY"
     pharmacy_endpoint = "https://sandbox.api.service.nhs.uk/fhir-prescribing/$post-message"
 

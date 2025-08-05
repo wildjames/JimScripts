@@ -69,7 +69,13 @@ def select_medication(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
         item_no = m['identifier'][0]['value']
         med_name = m['medicationCodeableConcept']['coding'][0]['display']
         status = m['status']
-        nppt_status = m['extension'][0]['extension'][0]['valueCoding']['code']
+
+        nppt_status_ext = m['extension'][0]['extension']
+        nppt_status = "unknown"
+        for ext in nppt_status_ext:
+            if ext["url"].lower() == "status":
+                nppt_status = ext["valueCoding"]["code"]
+
         print(f"  {idx}. current status: {status:>12s} | {nppt_status:<30s}\t{med_name} (order {order_no}, item {item_no})")
 
     choice = input(f"Choose an entry to update [1-{len(meds)}]: ")
