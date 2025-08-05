@@ -1,0 +1,20 @@
+[project]
+name = "scripts"
+version = "0.1.0"
+description = "EPS helper scriptd"
+authors = [
+    {name = "Jim Wild",email = "james.wild6@nhs.net"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyperclip (>=1.9.0,<2.0.0)",
+    "uuid (>=1.30,<2.0)",
+    "datetime (>=5.5,<6.0)",
+    "argparse (>=1.4.0,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
