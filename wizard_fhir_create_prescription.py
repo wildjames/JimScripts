@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
 Generate a FHIR Bundle JSON for a prescription order message interactively.
-
-Should be able to be pasted directly into EPSAT's custom Create A Prescription box.
 """
 import random
 import uuid
@@ -10,12 +8,13 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List
 import argparse
 
+from faker import Faker
 from utils.ODS import generate_ODS_code
 from utils.nhs_numbers import generate_nhs_numbers
 from utils.utils import output_bundle
 
-
 HEX_CHARS = '0123456789ABCDEF'
+fake = Faker('en_GB')
 
 
 def generate_order_number(ods_code: str) -> str:
@@ -27,11 +26,49 @@ def generate_order_number(ods_code: str) -> str:
     return f"{prefix}-{ods_code}-{suffix}"
 
 
+def generate_patient_data() -> Dict[str, Any]:
+    """
+    Generate random patient demographic info.
+    Returns dict with name, gender, birthDate, address lines, postalCode.
+    """
+    gender = random.choice(['male', 'female'])
+
+    # Trans rights might be human rights, but for this synthetic data I cba to simulate them
+    if gender == 'male':
+        first = fake.first_name_male()
+        prefix = 'Mr'
+    else:
+        first = fake.first_name_female()
+        prefix = random.choice(['Ms', 'Mrs', 'Miss'])
+
+    last = fake.last_name().upper()
+
+    birthdate = fake.date_between(start_date='-90y', end_date='-18y').isoformat()
+
+    street = fake.street_address().upper()
+    city = fake.city().upper()
+    county = fake.county().upper()
+    postal = fake.postcode().upper()
+
+    return {
+        'prefix': prefix,
+        'given': [first.upper()],
+        'family': last,
+        'gender': gender,
+        'birthDate': birthdate,
+        'address': [street, city, county],
+        'postalCode': postal
+    }
+
+
 def create_message_bundle(nhs_number: str, pharmacy_ods: str, count: int) -> Dict[str, Any]:
     # GP practice details (hardcoded example)
     gp_ods = generate_ODS_code(6)
     gp_name = "HALLGARTH SURGERY"
     pharmacy_endpoint = "https://sandbox.api.service.nhs.uk/fhir-prescribing/$post-message"
+
+    # Generate patient demographics
+    patient_data = generate_patient_data()
 
     # Sample medications
     sample_meds: List[Dict[str, Any]] = [
@@ -221,7 +258,7 @@ def create_message_bundle(nhs_number: str, pharmacy_ods: str, count: int) -> Dic
         }
         med_requests.append(med_req)
 
-    # Patient resource entry
+    # Patient resource entry using randomized data
     patient_entry: Dict[str, Any] = {
         "fullUrl": f"urn:uuid:{patient_uuid}",
         "resource": {
@@ -229,14 +266,19 @@ def create_message_bundle(nhs_number: str, pharmacy_ods: str, count: int) -> Dic
             "identifier": [
                 {"system": "https://fhir.nhs.uk/Id/nhs-number", "value": nhs_number}
             ],
-            "name": [
-                {"use": "usual", "family": "TWITCHETT", "given": ["STACEY", "MARISA"], "prefix": ["MS"]}
-            ],
-            "gender": "female",
-            "birthDate": "1948-04-30",
-            "address": [
-                {"use": "home", "line": ["10 HEATHFIELD", "COBHAM", "SURREY"], "postalCode": "KT11 2QY"}
-            ],
+            "name": [{
+                "use": "usual",
+                "family": patient_data['family'],
+                "given": patient_data['given'],
+                "prefix": [patient_data['prefix']]
+            }],
+            "gender": patient_data['gender'],
+            "birthDate": patient_data['birthDate'],
+            "address": [{
+                "use": "home",
+                "line": patient_data['address'],
+                "postalCode": patient_data['postalCode']
+            }],
             "generalPractitioner": [
                 {"identifier": {"system": "https://fhir.nhs.uk/Id/ods-organization-code", "value": gp_ods}}
             ]

@@ -109,6 +109,7 @@ def main():
     item_num = chosen['identifier'][0]['value']
     nhs_num = chosen['subject']['identifier']['value']
 
+    # FIXME: This should be the ODS code of the dispenseRequest Performer
     default_ods = find_default_ods(entries)
     ods = input(f"ODS organization code [{default_ods}]: ") or default_ods
     business_status = prompt_business_status()
