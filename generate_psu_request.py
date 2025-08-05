@@ -6,6 +6,7 @@ import datetime
 import json
 import sys
 import pyperclip
+from typing import Any
 
 # Following the spec from here:
 # https://digital.nhs.uk/developer/api-catalogue/prescription-status-update-fhir#post-/
@@ -29,7 +30,7 @@ TERMINAL_STATUSES = {"Collected", "Dispatched", "Not Dispensed"}
 
 def iso_now():
     """Return current UTC timestamp in ISO-8601 with 'Z' suffix (seconds precision)."""
-    return datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+    return datetime.datetime.now().replace(microsecond=0).isoformat() + "Z"
 
 
 def canonical_business_status(raw: str) -> str:
@@ -44,15 +45,14 @@ def canonical_business_status(raw: str) -> str:
     raise ValueError(f"Invalid business-status '{raw}'. Must be one of: {', '.join(BUSINESS_STATUS_CHOICES)}")
 
 
-def build_bundle(args):
+def build_bundle(args: argparse.Namespace):
     # Map to canonical casing
     bs = canonical_business_status(args.business_status)
     # Determine Task.status
     status = "completed" if bs in TERMINAL_STATUSES else "in-progress"
 
     task_id = str(uuid.uuid4())
-
-    bundle = {
+    bundle: dict[str, Any] = {
         "resourceType": "Bundle",
         "type": "transaction",
         "entry": [
@@ -153,7 +153,7 @@ def main():
 
     print(json.dumps(bundle, indent=2))
 
-
+    # Copy to clipboard
     pyperclip.copy(json.dumps(bundle, indent=2))
     print("\n\n------------------------------------")
     print("-->> Bundle copied to clipboard <<--")
