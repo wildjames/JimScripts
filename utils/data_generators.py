@@ -161,18 +161,18 @@ def generate_practitioner_data(ods: Optional[str]) -> Dict[str, Any]:
 
     # In theory, I think these mock values work. However, in practice they break the spine box.
     # I'll use hardcoded values, but leave this here for posterity in case I need to revisit.
-    # # https://simplifier.net/guide/UKNamingSystems/Home/Identifiersystems/IndexofIdentifierNamingsystems?version=current#SDSUserID
-    # # https://simplifier.net/packages/uk.nhsdigital.r4/2.11.0/files/2781522/~overview
-    # # This is not helpful, but examples look like they might be 12 digits and start with 555?
-    # sds_user = "555" + str(fake.random_number(digits=9, fix_len=True))
-    # # https://simplifier.net/guide/UKNamingSystems/Home/Identifiersystems/IndexofIdentifierNamingsystems?version=current#GMCNumber
-    # gmc = f"C{random.randint(0, 9999999):07d}"
-    # # https://archive.datadictionary.nhs.uk/DD%20Release%20June%202021/attributes/doctor_index_number.html
-    # din = str(fake.random_number(digits=6, fix_len=True))
+    # https://simplifier.net/guide/UKNamingSystems/Home/Identifiersystems/IndexofIdentifierNamingsystems?version=current#SDSUserID
+    # https://simplifier.net/packages/uk.nhsdigital.r4/2.11.0/files/2781522/~overview
+    # This is not helpful, but examples look like they might be 12 digits and start with 555?
+    sds_user = "555" + str(fake.random_number(digits=9, fix_len=True))
+    # https://simplifier.net/guide/UKNamingSystems/Home/Identifiersystems/IndexofIdentifierNamingsystems?version=current#GMCNumber
+    gmc = f"C{random.randint(0, 9999999):07d}"
+    # https://archive.datadictionary.nhs.uk/DD%20Release%20June%202021/attributes/doctor_index_number.html
+    din = str(fake.random_number(digits=6, fix_len=True))
 
-    sds_user = "555086689106"
-    gmc = "6095103"
-    din = "977677"
+    # sds_user = "555086689106"
+    # gmc = "6095103"
+    # din = "977677"
 
     return {
         'prefix': 'Dr',

@@ -20,7 +20,8 @@ from utils.utils import (
     iso_now,
     find_default_ods,
     load_private_key,
-    output_bundle
+    output_bundle,
+    save_bundle
 )
 
 
@@ -46,6 +47,13 @@ def parse_args() -> argparse.Namespace:
         '-s', '--send',
         action='store_true',
         help='Send the bundle to the PSU endpoint'
+    )
+    parser.add_argument(
+        '--save-dir',
+        type=str,
+        metavar='DIR',
+        help='Directory to save the generated FHIR Bundle JSON',
+        default="./data/psu_requests",
     )
     return parser.parse_args()
 
@@ -124,6 +132,7 @@ def main():
         last_modified=lm
     )
 
+    save_bundle("psu-request", bundle, args.save_dir)
 
     if args.send:
         load_dotenv()

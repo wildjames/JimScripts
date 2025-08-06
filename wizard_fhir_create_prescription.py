@@ -35,6 +35,7 @@ def main():
     parser.add_argument(
         "--save-dir",
         type=str,
+        metavar='DIR',
         help="Directory to save the generated FHIR Bundle JSON",
         default="./data/prescriptions",
     )

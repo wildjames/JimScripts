@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
-"""
-A script to perform a Prescription Status Update (PSU) request.
-Loads environment variables from a .env file:
-  - PRIVATE_KEY (PEM contents) or PRIVATE_KEY_PATH (path to PEM file)
-  - API_KEY (APIM application API key)
-  - HOST (e.g. internal-dev.api.service.nhs.uk)
-  - KID (key ID from APIM portal)
-"""
 
 
+
+import argparse
 import json
 from dotenv import load_dotenv
 
@@ -25,8 +19,15 @@ def main():
     host = get_env('HOST')
     kid = get_env('KID')
 
-    import argparse
-    parser = argparse.ArgumentParser(description='Send a Prescription Status Update bundle')
+    description = "Send a Prescription Status Update bundle to the PSU endpoint. "
+    description += "If the input file is not provided, it reads from STDIN."
+    description += " -->> Required environment variables:"
+    description += " - API_KEY: APIM application API key"
+    description += " - HOST: e.g. internal-dev.api.service.nhs.uk"
+    description += " - KID: key ID from APIM portal"
+    description += " - PRIVATE_KEY: PEM contents of the private key or PRIVATE_KEY_PATH: path to PEM file"
+
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-i', '--input', help='Path to JSON bundle file (defaults to STDIN)')
     args = parser.parse_args()
 
