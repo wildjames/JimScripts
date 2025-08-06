@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import json
 import os
 import sys
@@ -12,7 +12,7 @@ DEFAULT_ODS = "FA565"
 
 def iso_now():
     """Return current UTC timestamp in ISO-8601 with 'Z' suffix (seconds precision)."""
-    return datetime.datetime.now().replace(microsecond=0).isoformat() + "Z"
+    return datetime.now().replace(microsecond=0).isoformat() + "Z"
 
 
 def find_default_ods(entries: List[Dict[str, Any]]) -> str:
@@ -40,6 +40,30 @@ def output_bundle(
         print(f"Bundle saved to {filepath}")
     if not to_clip and not filepath:
         print(serialized)
+
+
+def save_bundle(prefix: str, bundle: Dict[str, Any], save_dir: str) -> None:
+    """
+    Save the FHIR Bundle JSON to a file.
+    """
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    nhs_number = "unknown-nhs-number"
+    ods_code = "unknown-ods-code"
+    for entry in bundle['entry']:
+        if entry['resource']['resourceType'] == 'Patient':
+            nhs_number = entry['resource']['identifier'][0]['value']
+        elif entry['resource']['resourceType'] == 'Organization':
+            ods_code = entry['resource']['identifier'][0]['value']
+
+    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    file_path = os.path.join(save_dir, f"{prefix}_nhs-num-{nhs_number}_ods-code-{ods_code}_gentime-{ts}.json")
+    with open(file_path, 'w') as f:
+        json.dump(bundle, f, indent=2)
+
+    print(f"FHIR Bundle saved to {file_path}")
 
 
 def load_private_key() -> str:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from utils.nhs_numbers import generate_nhs_numbers, complete_nhs_number
+from utils.data_generators import generate_nhs_numbers, complete_nhs_number
 
 def main():
     parser = argparse.ArgumentParser(
