@@ -22,13 +22,9 @@ KEY_PRIVATE="$OUTDIR/${KID}.pem"
 KEY_PUBLIC="$OUTDIR/${KID}.pem.pub"
 JWK_JSON="$OUTDIR/${KID}.json"
 
-# 1. Generate a 4096-bit RSA private key
 openssl genrsa -out "$KEY_PRIVATE" 4096
-
-# 2. Extract the public key in PEM format
 openssl rsa -in "$KEY_PRIVATE" -pubout -outform PEM -out "$KEY_PUBLIC"
 
-# 3. Compute the modulus, convert to base64url
 MODULUS=$(
   openssl rsa -pubin -in "$KEY_PUBLIC" -noout -modulus \
     | cut -d '=' -f2 \
@@ -37,7 +33,6 @@ MODULUS=$(
     | sed 's|+|-|g; s|/|_|g; s|=||g'
 )
 
-# 4. Emit the JWK JSON
 cat > "$JWK_JSON" <<EOF
 {
   "keys": [
@@ -53,7 +48,7 @@ cat > "$JWK_JSON" <<EOF
 }
 EOF
 
-# 5. Base64-encode the JSON and print the mock-JWKS URL
+# Base64-encode the JSON and print the mock-JWKS URL
 ENCODED_JWK=$(openssl base64 -A < "$JWK_JSON")
 
 echo "✔ Generated:"
