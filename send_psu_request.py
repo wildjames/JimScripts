@@ -18,7 +18,6 @@ def main():
     kid = get_env('KID')
 
     description = "Send a Prescription Status Update bundle to the PSU endpoint. "
-    description += "If the input file is not provided, it reads from STDIN."
     description += " -->> Required environment variables:"
     description += " - API_KEY: APIM application API key"
     description += " - HOST: e.g. internal-dev.api.service.nhs.uk"
@@ -26,7 +25,10 @@ def main():
     description += " - PRIVATE_KEY: PEM contents of the private key or PRIVATE_KEY_PATH: path to PEM file"
 
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-i', '--input', help='Path to JSON bundle file (defaults to STDIN)')
+    parser.add_argument(
+        '--input',
+        help='Path to JSON bundle file'
+    )
     args = parser.parse_args()
 
     bundle = load_bundle(args.input)

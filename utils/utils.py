@@ -1,8 +1,7 @@
 from datetime import datetime
 import json
 import os
-import sys
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 
 import pyperclip
 
@@ -15,30 +14,44 @@ def iso_now():
     return datetime.now().replace(microsecond=0).isoformat() + "Z"
 
 
-def find_default_ods(entries: List[Dict[str, Any]]) -> str:
+def find_dispense_performer_ods(entries: List[Dict[str, Any]], chosen_entry: Dict[str, Any]) -> str:
+    # Get the performer from the chosen entry.
+    performer_id = chosen_entry.get("dispenseRequest", {}).get('performer', {}).get('reference')
+    performer_id = performer_id.split(":")[-1] if performer_id else None
+
+    # Now find the corresponding Organization entry
+    ods_code = DEFAULT_ODS
     for e in entries:
-        res = e.get('resource', {})
-        if res.get('resourceType') == 'Organization':
-            for ident in res.get('identifier', []):
-                if ident.get('system', '').endswith('/ods-organization-code'):
-                    return ident.get('value')
-    return DEFAULT_ODS
+        res: Dict[str, Any] = e.get('resource', {})
+        if res.get('resourceType') == 'Organization' and res.get('id') == performer_id:
+            ods_code = res.get('identifier', [{}])[0].get('value')
+
+    return ods_code
+
+
+def find_nhs_number(entries: List[Dict[str, Any]]) -> str:
+    """Find the NHS number from the entries."""
+    for e in entries:
+        resource_entries: List[Dict[str, Any]] = e.get('resource', {}).get("entry", [{}])
+        for entry in resource_entries:
+            res = entry.get('resource', {})
+            if res.get('resourceType') == 'MedicationRequest':
+                return res.get("subject", {}).get('identifier', [{}]).get('value', 'unknown-nhs-number')
+    return 'unknown-nhs-number'
 
 
 def output_bundle(
     bundle: Dict[str, Any],
     to_clip: bool,
-    filepath: Optional[str]
+    dense: bool = False
 ):
-    serialized = json.dumps(bundle, indent=2)
+    indent = 2 if not dense else None
+    serialized = json.dumps(bundle, indent=indent)
+
     if to_clip:
         pyperclip.copy(serialized)
         print("Bundle copied to clipboard.")
-    if filepath:
-        with open(filepath, 'w') as f:
-            f.write(serialized)
-        print(f"Bundle saved to {filepath}")
-    if not to_clip and not filepath:
+    else:
         print(serialized)
 
 
@@ -49,17 +62,11 @@ def save_bundle(prefix: str, bundle: Dict[str, Any], save_dir: str) -> None:
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    nhs_number = "unknown-nhs-number"
-    ods_code = "unknown-ods-code"
-    for entry in bundle['entry']:
-        if entry['resource']['resourceType'] == 'Patient':
-            nhs_number = entry['resource']['identifier'][0]['value']
-        elif entry['resource']['resourceType'] == 'Organization':
-            ods_code = entry['resource']['identifier'][0]['value']
+    nhs_number = find_nhs_number(bundle['entry'])
 
-    ts = datetime.now().strftime("%Y%m%d%H%M%S")
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
 
-    file_path = os.path.join(save_dir, f"{prefix}_nhs-num-{nhs_number}_ods-code-{ods_code}_gentime-{ts}.json")
+    file_path = os.path.join(save_dir, f"{prefix}_{ts}_nhs-num-{nhs_number}.json")
     with open(file_path, 'w') as f:
         json.dump(bundle, f, indent=2)
 
@@ -84,11 +91,6 @@ def get_env(var: str) -> str:
     return val
 
 
-def load_bundle(input_path: str | None = None) -> Dict[str, Any]:
-    if input_path:
-        with open(input_path, 'r') as f:
-            return json.load(f)
-    else:
-        # TODO: I don't think this works... fix it
-        data = sys.stdin.read()
-        return json.loads(data)
+def load_bundle(input_path: str) -> Dict[str, Any]:
+    with open(input_path, 'r') as f:
+        return json.load(f)

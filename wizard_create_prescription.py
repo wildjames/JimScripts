@@ -54,7 +54,7 @@ def main():
         args.practitioner_ods
     )
 
-    output_bundle(bundle, True, None)
+    output_bundle(bundle, True)
     save_bundle("prescription-bundle", bundle, args.save_dir)
 
 if __name__ == "__main__":

@@ -8,7 +8,9 @@ def main():
         description="Generate or validate NHS numbers with optional invalid or dummy flags."
     )
     parser.add_argument(
-        '-n', '--count', type=int,
+        '-n', '--count',
+        type=int,
+        default=1,
         help='Generate a list of NHS numbers of length N'
     )
     parser.add_argument(
@@ -17,8 +19,9 @@ def main():
         help='Generate the full NHS number by computing the check digit for a 9-digit input'
     )
     parser.add_argument(
-        '--dummy', action='store_true',
-        help="Generate a dummy NHS number (always starts with '999')"
+        '--real',
+        action='store_false',
+        help="DONT Generate a dummy NHS number (always starts with '999'), instead make one that is not restricted to the dummy range."
     )
     parser.add_argument(
         '--invalid', action='store_true',
@@ -33,7 +36,7 @@ def main():
         print(full)
 
     elif args.count is not None:
-        nums = generate_nhs_numbers(args.count, invalid=args.invalid, dummy=args.dummy)
+        nums = generate_nhs_numbers(args.count, invalid=args.invalid, dummy=args.real)
         for num in nums:
             print(num)
 

@@ -18,7 +18,7 @@ from utils.pfp_requests import load_collection_entries
 from utils.utils import (
     get_env,
     iso_now,
-    find_default_ods,
+    find_dispense_performer_ods,
     load_private_key,
     output_bundle,
     save_bundle
@@ -118,7 +118,7 @@ def main():
     nhs_num = chosen['subject']['identifier']['value']
 
     # FIXME: This should be the ODS code of the dispenseRequest Performer
-    default_ods = find_default_ods(entries)
+    default_ods = find_dispense_performer_ods(entries, chosen)
     ods = input(f"ODS organization code [{default_ods}]: ") or default_ods
     business_status = prompt_business_status()
     lm = input("LastModified timestamp [enter for now]: ") or iso_now()
@@ -149,10 +149,8 @@ def main():
         print(f"Request ID: {rid}")
         print(f"Correlation ID: {cid}")
         print(f"Response: {resp.status_code} {resp.reason}")
-        try:
-            print(json.dumps(resp.json(), indent=2))
-        except ValueError:
-            print(resp.text)
+        if resp.status_code != 201:
+            raise RuntimeError(f"Failed to send bundle: {resp.text}")
     else:
         output_bundle(bundle, args.clipboard, args.output)
 
