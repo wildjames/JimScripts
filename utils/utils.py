@@ -1,7 +1,15 @@
 from datetime import datetime
 import json
 import os
-from typing import Dict, List, Any, Optional
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Any,
+    Callable,
+    Optional,
+    Iterator
+)
 
 import pyperclip
 
@@ -29,39 +37,50 @@ def find_dispense_performer_ods(entries: List[Dict[str, Any]], chosen_entry: Dic
     return ods_code
 
 
+def _iter_resources(entries: List[Dict[str, Any]]) -> Iterator[Dict[str, Any]]:
+    """
+    Yield every resource in the bundle entries, including any nested
+    resources under entry.resource.entry.
+    """
+    for entry in entries:
+        res = entry.get("resource", {})
+        yield res
+        for nested in res.get("entry", []):
+            yield nested.get("resource", {})
+
+
 def find_nhs_number(entries: List[Dict[str, Any]]) -> str:
-    """Find the NHS number from the entries."""
-    nhs_number = None
+    """
+    Find the NHS number in order of:
+      1. MedicationRequest.subject.identifier
+      2. Patient.identifier
+      3. Task.for.identifier
+    Returns 'unknown-nhs-number' if none found.
+    """
+    # Doing these as lambdas caused pylance to complain, and I cba to fix it
+    def extract_medication_request(r: Dict[str, Any]) -> Optional[str]:
+        return r.get("subject", {}).get("identifier", [{}])[0].get("value")
 
-    # Try getting NHS number from medicationRequest entries
-    for e in entries:
-        resource_entries: List[Dict[str, Any]] = e.get('resource', {}).get("entry", [{}])
-        for entry in resource_entries:
-            res = entry.get('resource', {})
-            if res.get('resourceType') == 'MedicationRequest':
-                nhs_number = res.get("subject", {}).get('identifier', [{}]).get('value', None)
-                if nhs_number:
-                    return nhs_number
+    def extract_patient(r: Dict[str, Any]) -> Optional[str]:
+        return r.get("identifier", [{}])[0].get("value")
 
-    # If no medicationRequests have NHS numbers, try assuming we're in a "create prescription" context
-    for e in entries:
-        res = e.get('resource', {})
-        if res.get('resourceType') == 'Patient':
-            nhs_number = res.get('identifier', [{}])[0].get('value', None)
-            if nhs_number:
-                return nhs_number
+    def extract_task(r: Dict[str, Any]) -> Optional[str]:
+        return r.get("for", {}).get("identifier", {}).get("value")
 
-    # Then try to find it as a PSU request
-    for e in entries:
-        res = e.get('resource', {})
-        if res.get('resourceType') == 'Task':
-            nhs_number = res.get('for', {}).get('identifier', {}).get('value', None)
-            if nhs_number:
-                return nhs_number
+    priority: List[Tuple[str, Callable[[Dict[str, Any]], Optional[str]]]] = [
+        ("MedicationRequest", extract_medication_request),
+        ("Patient", extract_patient),
+        ("Task", extract_task),
+    ]
 
+    for resource_type, extractor in priority:
+        for res in _iter_resources(entries):
+            if res.get("resourceType") == resource_type:
+                nhs = extractor(res)
+                if nhs:
+                    return nhs
 
-    return 'unknown-nhs-number'
-
+    return "unknown-nhs-number"
 
 def output_bundle(
     bundle: Dict[str, Any],
