@@ -1,7 +1,7 @@
 from datetime import datetime
 import json
 import os
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 import pyperclip
 
@@ -70,14 +70,20 @@ def output_bundle(
         print(serialized)
 
 
-def save_bundle(prefix: str, bundle: Dict[str, Any], save_dir: str) -> None:
+def save_bundle(
+    prefix: str,
+    bundle: Dict[str, Any],
+    save_dir: str,
+    nhs_number: Optional[str] = None
+) -> None:
     """
     Save the FHIR Bundle JSON to a file.
     """
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    nhs_number = find_nhs_number(bundle['entry'])
+    if not nhs_number:
+        nhs_number = find_nhs_number(bundle['entry'])
 
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
 

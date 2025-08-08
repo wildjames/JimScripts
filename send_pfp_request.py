@@ -54,7 +54,8 @@ def main():
     save_bundle(
         "pfp_response",
         bundle,
-        args.save_dir
+        args.save_dir,
+        nhs_number=args.nhs_number
     )
 
 if __name__ == "__main__":
