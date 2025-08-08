@@ -40,9 +40,8 @@ def find_nhs_number(entries: List[Dict[str, Any]]) -> str:
             res = entry.get('resource', {})
             if res.get('resourceType') == 'MedicationRequest':
                 nhs_number = res.get("subject", {}).get('identifier', [{}]).get('value', None)
-
-    if nhs_number:
-        return nhs_number
+                if nhs_number:
+                    return nhs_number
 
     # If no medicationRequests have NHS numbers, try assuming we're in a "create prescription" context
     for e in entries:
@@ -51,6 +50,15 @@ def find_nhs_number(entries: List[Dict[str, Any]]) -> str:
             nhs_number = res.get('identifier', [{}])[0].get('value', None)
             if nhs_number:
                 return nhs_number
+
+    # Then try to find it as a PSU request
+    for e in entries:
+        res = e.get('resource', {})
+        if res.get('resourceType') == 'Task':
+            nhs_number = res.get('for', {}).get('identifier', {}).get('value', None)
+            if nhs_number:
+                return nhs_number
+
 
     return 'unknown-nhs-number'
 

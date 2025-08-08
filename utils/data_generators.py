@@ -165,6 +165,8 @@ def generate_practitioner_data(ods: Optional[str]) -> Dict[str, Any]:
     # https://simplifier.net/packages/uk.nhsdigital.r4/2.11.0/files/2781522/~overview
     # This is not helpful, but examples look like they might be 12 digits and start with 555?
     sds_user = "555" + str(fake.random_number(digits=9, fix_len=True))
+    # 200102238987
+    sds_role = str(fake.random_number(digits=12, fix_len=True))
     # https://simplifier.net/guide/UKNamingSystems/Home/Identifiersystems/IndexofIdentifierNamingsystems?version=current#GMCNumber
     gmc = f"C{random.randint(0, 9999999):07d}"
     # https://archive.datadictionary.nhs.uk/DD%20Release%20June%202021/attributes/doctor_index_number.html
@@ -180,6 +182,7 @@ def generate_practitioner_data(ods: Optional[str]) -> Dict[str, Any]:
         'family': fake.last_name().upper(),
         'identifiers': {
             'sds_user_id': sds_user,
+            'sds_role_id': sds_role,
             'gmc_number': gmc,
             'din_number': din
         },
