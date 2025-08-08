@@ -31,12 +31,27 @@ def find_dispense_performer_ods(entries: List[Dict[str, Any]], chosen_entry: Dic
 
 def find_nhs_number(entries: List[Dict[str, Any]]) -> str:
     """Find the NHS number from the entries."""
+    nhs_number = None
+
+    # Try getting NHS number from medicationRequest entries
     for e in entries:
         resource_entries: List[Dict[str, Any]] = e.get('resource', {}).get("entry", [{}])
         for entry in resource_entries:
             res = entry.get('resource', {})
             if res.get('resourceType') == 'MedicationRequest':
-                return res.get("subject", {}).get('identifier', [{}]).get('value', 'unknown-nhs-number')
+                nhs_number = res.get("subject", {}).get('identifier', [{}]).get('value', None)
+
+    if nhs_number:
+        return nhs_number
+
+    # If no medicationRequests have NHS numbers, try assuming we're in a "create prescription" context
+    for e in entries:
+        res = e.get('resource', {})
+        if res.get('resourceType') == 'Patient':
+            nhs_number = res.get('identifier', [{}])[0].get('value', None)
+            if nhs_number:
+                return nhs_number
+
     return 'unknown-nhs-number'
 
 

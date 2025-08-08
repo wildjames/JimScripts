@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import sys
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
@@ -68,8 +67,7 @@ def load_input(path: Optional[str]) -> Dict[str, Any]:
 def select_medication(entries: List[Dict[str, Any]]) -> Dict[str, Any]:
     meds = [e['resource'] for e in entries if e.get('resource', {}).get('resourceType') == 'MedicationRequest']
     if not meds:
-        print("No MedicationRequest entries found.", file=sys.stderr)
-        sys.exit(1)
+        raise ValueError("No MedicationRequest entries found.")
 
     print("Medications in fetched bundle:")
     for idx, m in enumerate(meds, start=1):
@@ -117,7 +115,6 @@ def main():
     item_num = chosen['identifier'][0]['value']
     nhs_num = chosen['subject']['identifier']['value']
 
-    # FIXME: This should be the ODS code of the dispenseRequest Performer
     default_ods = find_dispense_performer_ods(entries, chosen)
     ods = input(f"ODS organization code [{default_ods}]: ") or default_ods
     business_status = prompt_business_status()
