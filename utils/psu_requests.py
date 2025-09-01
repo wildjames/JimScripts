@@ -1,6 +1,8 @@
 import uuid
 from typing import Any
 import time
+import string
+import random
 import requests
 import jwt
 
@@ -25,6 +27,8 @@ BUSINESS_STATUS_CHOICES = [
 # Terminal statuses trigger Task.status = "completed"
 TERMINAL_STATUSES = {"Collected", "Dispatched", "Not Dispensed"}
 
+# For generating prescription IDs
+CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+"
 
 def canonical_business_status(raw: str) -> str:
     """
@@ -155,3 +159,30 @@ def send_psu(host: str, token: str, bundle: str | dict[str, Any]) -> tuple[reque
     }
     resp = requests.post(url, headers=headers, json=bundle)
     return resp, request_id, correlation_id
+
+def calculate_total_for_check_digit(input_str: str) -> int:
+    total = 0
+    for char in input_str:
+        char_val = int(char, 36)  # handles 0-9 and A-Z
+        total = ((total + char_val) * 2) % 37
+    return total
+
+def compute_check_digit(prescription_id: str) -> str:
+    total = calculate_total_for_check_digit(prescription_id)
+    # Find a check digit such that (total + value) % 37 == 1
+    for i, ch in enumerate(CHECK_DIGIT_VALUES):
+        if (total + i) % 37 == 1:
+            return ch
+    raise ValueError("No valid check digit found")
+
+def generate_prescription_id() -> str:
+    # Generate 18 random alphanumeric chars (A-Z, 0-9)
+    chars = string.ascii_uppercase + string.digits
+    core = ''.join(random.choice(chars) for _ in range(18))
+
+    # Compute check digit
+    check_digit = compute_check_digit(core)
+
+    # Format: XXXXXX-XXXXXX-XXXXXX + check digit
+    formatted = f"{core[0:6]}-{core[6:12]}-{core[12:18]}{check_digit}"
+    return formatted

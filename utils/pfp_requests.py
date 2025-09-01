@@ -27,15 +27,14 @@ def load_collection_entries(body: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
     Given the top-level PfP response JSON, return the inner 'collection' entries list.
     """
-    try:
-        top = body['entry'][0]['resource']
-        if top.get('resourceType') == 'Bundle' and top.get('type') == 'collection':
-            return top['entry']
-    except (KeyError, IndexError, TypeError):
-        pass
 
-    raise ValueError("Error: Unable to locate the inner collection bundle in input.")
+    entries: List[Dict[str, Any]] = []
+    for entry in body.get('entry', []):
+        resource = entry.get('resource', {})
+        if resource.get('resourceType') == 'Bundle' and resource.get('type') == 'collection':
+            entries.extend(resource.get('entry', []))
 
+    return entries
 
 def generate_pkce_pair():
     """
