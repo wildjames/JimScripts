@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from faker import Faker
 
-from utils.psu_requests import build_psu_bundle, canonical_business_status
+from utils.psu_requests import build_psu_bundle, build_psu_entry, canonical_business_status
 
 
 HEX_CHARS = '0123456789ABCDEF'
@@ -80,7 +80,11 @@ def generate_nhs_number(invalid: bool = False, dummy: bool = False) -> str:
         nine = prefix + body
     else:
         nine = ''.join(str(random.randint(0, 9)) for _ in range(9))
-    return complete_nhs_number(nine, invalid=invalid)
+    try:
+        return complete_nhs_number(nine, invalid=invalid)
+    except:
+        # if this is not a valid number, try again
+        return generate_nhs_number(invalid, dummy)
 
 
 def generate_nhs_numbers(count: int, invalid: bool = False, dummy: bool = False) -> list[str]:
@@ -281,7 +285,7 @@ def generate_psu_request_bundle(
     print(f"  Order number: {order_number}")
     print(f"  Order item number: {order_item_number}")
 
-    return build_psu_bundle(
+    entry = build_psu_entry(
         business_status=business_status,
         order_number=order_number,
         order_item_number=order_item_number,
@@ -289,3 +293,5 @@ def generate_psu_request_bundle(
         ods_code=ods_code,
         last_modified=last_modified
     )
+
+    return build_psu_bundle([entry])

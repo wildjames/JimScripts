@@ -56,7 +56,6 @@ SAMPLE_MEDICATIONS: List[Dict[str, Any]] = [
 def _ensure_pharmacy_ods(pharmacy_ods: Optional[str]) -> str:
     if not pharmacy_ods:
         code = generate_ODS_code()
-        print(f"Generated Pharmacy ODS code: {code}")
         return code
     return pharmacy_ods
 
