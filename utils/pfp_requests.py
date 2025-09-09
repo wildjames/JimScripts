@@ -2,6 +2,7 @@ import os
 import pathlib
 import uuid
 import secrets
+from dotenv import load_dotenv
 import hashlib
 import base64
 import requests
@@ -21,6 +22,21 @@ from webdriver_manager.firefox import GeckoDriverManager
 
 # Used to authenticate to mock NHS login
 AUTH_USERNAME = os.getenv("AUTH_USERNAME", "9449304130")
+
+
+def get_pfp_env():
+    load_dotenv()
+
+    host          = os.getenv('HOST')
+    client_id     = os.getenv('PFP_API_KEY')
+    client_secret = os.getenv('PFP_CLIENT_SECRET')
+    redirect_uri  = os.getenv('REDIRECT_URI', 'https://www.google.com/')
+
+    # This needs to be duplicated or the type checker complains
+    if (not host or not client_id or not client_secret):
+        raise EnvironmentError("HOST, PFP_API_KEY and PFP_CLIENT_SECRET must be set in .env")
+
+    return host, client_id, client_secret, redirect_uri
 
 
 def load_collection_entries(body: Dict[str, Any]) -> List[Dict[str, Any]]:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 
-from utils.data_generators import generate_nhs_numbers
+from utils.data_generators import generate_nhs_number
 from utils.create_prescription import create_prescription_message_bundle
 from utils.utils import (
     output_bundle,
@@ -42,7 +42,7 @@ def main():
     args = parser.parse_args()
 
     if not args.nhs_number:
-        nhs_number = generate_nhs_numbers(1, dummy=True)[0]
+        nhs_number = generate_nhs_number(dummy=True)
         print(f"Generated NHS number: {nhs_number}")
     else:
         nhs_number = args.nhs_number

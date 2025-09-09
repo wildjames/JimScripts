@@ -13,6 +13,8 @@ from typing import (
 
 import pyperclip
 
+from utils.pfp_requests import load_collection_entries
+
 
 DEFAULT_ODS = "FA565"
 
@@ -22,14 +24,15 @@ def iso_now():
     return datetime.now().replace(microsecond=0).isoformat() + "Z"
 
 
-def find_dispense_performer_ods(entries: List[Dict[str, Any]], chosen_entry: Dict[str, Any]) -> str:
+def find_dispense_performer_ods(data: Dict[str, Any], chosen_entry: Dict[str, Any]) -> str:
     # Get the performer from the chosen entry.
     performer_id = chosen_entry.get("dispenseRequest", {}).get('performer', {}).get('reference')
     performer_id = performer_id.split(":")[-1] if performer_id else None
 
     # Now find the corresponding Organization entry
     ods_code = DEFAULT_ODS
-    for e in entries:
+
+    for e in load_collection_entries(data):
         res: Dict[str, Any] = e.get('resource', {})
         if res.get('resourceType') == 'Organization' and res.get('id') == performer_id:
             ods_code = res.get('identifier', [{}])[0].get('value')

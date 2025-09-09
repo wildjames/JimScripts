@@ -2,7 +2,7 @@
 
 import argparse
 
-from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_bundle
+from utils.psu_requests import BUSINESS_STATUS_CHOICES, build_psu_bundle
 from utils.utils import output_bundle
 
 
@@ -52,7 +52,7 @@ def main():
 
     args = parser.parse_args()
 
-    bundle = build_bundle(
+    bundle = build_psu_bundle(
         business_status=args.business_status,
         order_number=args.order_number,
         order_item_number=args.order_item_number,

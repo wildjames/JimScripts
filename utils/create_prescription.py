@@ -3,7 +3,7 @@ from uuid import uuid4
 from typing import Any, Dict, List, Optional
 
 from utils.data_generators import (
-    generate_order_number,
+    generate_prescription_id,
     generate_patient_data,
     generate_practitioner_data,
     generate_ODS_code,
@@ -307,7 +307,7 @@ def create_prescription_message_bundle(
 
     # Generate UUIDs and order numbers
     ids = {key: str(uuid4()) for key in ["bundle", "message", "header", "patient", "practitioner", "practitioner_role", "org"]}
-    group_order_number = generate_order_number(practitioner_data["ods_code"])
+    group_order_number = generate_prescription_id(practitioner_data["ods_code"])
     prescription_id = str(uuid4())
 
     # Build the medication requests

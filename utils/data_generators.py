@@ -1,13 +1,18 @@
 import random
 import string
 from typing import Dict, Any, Optional
+from uuid import uuid4
 
 from faker import Faker
+
+from utils.psu_requests import build_psu_bundle, canonical_business_status
 
 
 HEX_CHARS = '0123456789ABCDEF'
 fake = Faker('en_GB')
 
+# For generating prescription IDs
+PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+"
 
 # Multipliers for the first 9 digits
 NHS_NUMBER_WEIGHTS = list(range(10, 1, -1))  # [10, 9, ..., 2]
@@ -56,6 +61,28 @@ def complete_nhs_number(nine_digits: str, invalid: bool = False) -> str:
     return nine_digits + str(cd)
 
 
+def generate_nhs_number(invalid: bool = False, dummy: bool = False) -> str:
+    """
+    Generate a single NHS number.
+
+    https://archive.datadictionary.nhs.uk/DD%20Release%20May%202024/attributes/nhs_number.html
+
+    Args:
+        invalid (bool): If True, generate a number with an incorrect check digit.
+        dummy (bool): If True, the number starts with '999'.
+
+    Returns:
+        str: Generated NHS number.
+    """
+    if dummy:
+        prefix = '999'
+        body = ''.join(str(random.randint(0, 9)) for _ in range(6))
+        nine = prefix + body
+    else:
+        nine = ''.join(str(random.randint(0, 9)) for _ in range(9))
+    return complete_nhs_number(nine, invalid=invalid)
+
+
 def generate_nhs_numbers(count: int, invalid: bool = False, dummy: bool = False) -> list[str]:
     """
     Generate a list of NHS numbers.
@@ -72,19 +99,32 @@ def generate_nhs_numbers(count: int, invalid: bool = False, dummy: bool = False)
     """
     numbers: list[str] = []
     while len(numbers) < count:
-        if dummy:
-            prefix = '999'
-            body = ''.join(str(random.randint(0, 9)) for _ in range(6))
-            nine = prefix + body
-        else:
-            nine = ''.join(str(random.randint(0, 9)) for _ in range(9))
         try:
-            full = complete_nhs_number(nine, invalid=invalid)
+            full = generate_nhs_number(invalid=invalid, dummy=dummy)
         except ValueError:
             # skip invalid base sequences and retry
             continue
         numbers.append(full)
     return numbers
+
+
+def validate_nhs_number(nhs_number: str) -> bool:
+    """
+    Validate an NHS number by checking its format and check digit.
+
+    Args:
+        nhs_number (str): The NHS number to validate.
+
+    Returns:
+        bool: True if valid, False otherwise.
+    """
+    if len(nhs_number) != 10 or not nhs_number.isdigit():
+        return False
+    try:
+        expected_cd = calculate_check_digit(nhs_number[:9])
+        return expected_cd == int(nhs_number[9])
+    except ValueError:
+        return False
 
 
 def generate_ODS_code(length: int = 5) -> str:
@@ -108,13 +148,35 @@ def generate_ODS_code(length: int = 5) -> str:
         raise ValueError("ODS code length must be between 3 and 5 characters.")
 
 
-def generate_order_number(ods_code: str) -> str:
+def generate_prescription_id(ods_code: Optional[str] = None) -> str:
     """
-    Generate a prescription order number in format: <6 uppercase hex>-<ODS>-<6 uppercase hex>
+    Generate a prescription order number in format: [6 hex]-[ODS]-[5 hex][check digit]
     """
-    prefix = ''.join(random.choice(HEX_CHARS) for _ in range(6))
-    suffix = ''.join(random.choice(HEX_CHARS) for _ in range(6))
-    return f"{prefix}-{ods_code}-{suffix}"
+    # Generate 12 random alphanumeric chars (A-Z, 0-9)
+    chars = string.ascii_uppercase + string.digits
+    core = ''.join(random.choice(chars) for _ in range(11))
+
+    ods_code = ods_code or generate_ODS_code(6)
+
+    formatted = f"{core[:6]}-{ods_code}-{core[6:]}"
+    check_digit = compute_presc_id_check_digit(formatted)
+    return formatted + check_digit
+
+def calculate_presc_id_check_digit_total(input_str: str) -> int:
+    total = 0
+    input_str = input_str.replace('-', '')
+    for char in input_str:
+        total = ((total + int(char, 36)) * 2) % 37
+    return total
+
+
+def compute_presc_id_check_digit(prescription_id: str) -> str:
+    total = calculate_presc_id_check_digit_total(prescription_id)
+    # Find a check digit such that (total + value) % 37 == 1
+    for i, ch in enumerate(PRESCRIPTION_ID_CHECK_DIGIT_VALUES):
+        if (total + i) % 37 == 1:
+            return ch
+    raise ValueError("No valid check digit found")
 
 
 def generate_patient_data() -> Dict[str, Any]:
@@ -189,3 +251,41 @@ def generate_practitioner_data(ods: Optional[str]) -> Dict[str, Any]:
         'phone': fake.phone_number(),
         'ods_code': ods if ods else generate_ODS_code(6)
     }
+
+
+def generate_psu_request_bundle(
+    business_status: str,
+    task_id: Optional[str] = None,
+    nhs_number: Optional[str] = None,
+    ods_code: Optional[str] = None,
+    order_number: Optional[str] = None,
+    order_item_number: Optional[str] = None,
+    last_modified: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a minimal FHIR Bundle for a PSU request.
+    """
+    task_id = task_id or str(uuid4())
+    nhs_number = nhs_number or generate_nhs_number(dummy=False, invalid=False)
+
+    ods_code = ods_code or generate_ODS_code(5)
+    order_number = order_number or generate_prescription_id(ods_code)
+    order_item_number = order_item_number or str(uuid4())
+
+    business_status = canonical_business_status(business_status)
+
+    print("Generating PSU request with:")
+    print(f"  Task ID: {task_id}")
+    print(f"  NHS number: {nhs_number}")
+    print(f"  ODS code: {ods_code}")
+    print(f"  Order number: {order_number}")
+    print(f"  Order item number: {order_item_number}")
+
+    return build_psu_bundle(
+        business_status=business_status,
+        order_number=order_number,
+        order_item_number=order_item_number,
+        nhs_number=nhs_number,
+        ods_code=ods_code,
+        last_modified=last_modified
+    )
