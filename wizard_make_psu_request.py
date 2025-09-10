@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 from dotenv import load_dotenv
 
-from utils.data_generators import generate_psu_request_bundle, validate_nhs_number
+from utils.data_generators import generate_psu_request_bundle, generate_psu_request_multi_prescription_bundle, validate_nhs_number
 from utils.psu_requests import (
     BUSINESS_STATUS_CHOICES,
     canonical_business_status,
@@ -50,8 +50,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         '--business-status',
-        help='Business status to set in the PSU request if using wizard mode. Default: "Ready to Collect".',
-        default="Ready to Collect"
+        help='Business status to set in the PSU request if using wizard mode. Default: "With Pharmacy".',
+        default="With Pharmacy"
     )
     parser.add_argument(
         '-c', '--clipboard',
@@ -134,17 +134,26 @@ def main():
             data = json.load(f)
 
     elif args.wizard:
-        # This is the interactive mode where we generate fake data
-        nhs_number = args.nhs_number or input("Enter NHS number to use in the request: ")
+        count = int(input("How many prescriptions to create? "))
+        if count > 1:
+            bundle = generate_psu_request_multi_prescription_bundle(
+                business_status=args.business_status,
+                count=count,
+                ods_code=args.ods_code,
+            )
 
-        if not nhs_number or not validate_nhs_number(nhs_number):
-            raise ValueError("NHS number is required (and must be valid) in wizard mode.")
+        else:
+            # This is the interactive mode where we generate fake data
+            nhs_number = args.nhs_number or input("Enter NHS number to use in the request: ")
 
-        bundle = generate_psu_request_bundle(
-            business_status=args.business_status,
-            ods_code=args.ods_code,
-            nhs_number=nhs_number,
-        )
+            if not nhs_number or not validate_nhs_number(nhs_number):
+                raise ValueError("NHS number is required (and must be valid) in wizard mode.")
+
+            bundle = generate_psu_request_bundle(
+                business_status=args.business_status,
+                ods_code=args.ods_code,
+                nhs_number=nhs_number,
+            )
 
     elif args.nhs_number:
         # If the nhs number is provided and we're NOT building fake data,

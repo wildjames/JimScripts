@@ -1,6 +1,7 @@
+from datetime import datetime, timezone
 import random
 import string
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from uuid import uuid4
 
 from faker import Faker
@@ -259,7 +260,6 @@ def generate_practitioner_data(ods: Optional[str]) -> Dict[str, Any]:
 
 def generate_psu_request_bundle(
     business_status: str,
-    task_id: Optional[str] = None,
     nhs_number: Optional[str] = None,
     ods_code: Optional[str] = None,
     order_number: Optional[str] = None,
@@ -269,17 +269,15 @@ def generate_psu_request_bundle(
     """
     Generate a minimal FHIR Bundle for a PSU request.
     """
-    task_id = task_id or str(uuid4())
     nhs_number = nhs_number or generate_nhs_number(dummy=False, invalid=False)
 
     ods_code = ods_code or generate_ODS_code(5)
-    order_number = order_number or generate_prescription_id(ods_code)
+    order_number = generate_prescription_id(ods_code)
     order_item_number = order_item_number or str(uuid4())
 
     business_status = canonical_business_status(business_status)
 
     print("Generating PSU request with:")
-    print(f"  Task ID: {task_id}")
     print(f"  NHS number: {nhs_number}")
     print(f"  ODS code: {ods_code}")
     print(f"  Order number: {order_number}")
@@ -295,3 +293,44 @@ def generate_psu_request_bundle(
     )
 
     return build_psu_bundle([entry])
+
+
+def generate_psu_request_multi_prescription_bundle(
+    business_status: str,
+    count: int,
+    ods_code: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate a minimal FHIR Bundle for a PSU request.
+    """
+    entries: List[Dict[str, Any]] = []
+
+    for _ in range(count):
+        nhs_number = generate_nhs_number(dummy=False, invalid=False)
+
+        this_ods_code = ods_code or generate_ODS_code(5)
+        order_number = generate_prescription_id(ods_code)
+        order_item_number = str(uuid4())
+
+        business_status = canonical_business_status(business_status)
+
+        last_modified = datetime.now(timezone.utc).isoformat()
+
+        print("Generating PSU request with:")
+        print(f"  NHS number: {nhs_number}")
+        print(f"  ODS code: {ods_code}")
+        print(f"  Order number: {order_number}")
+        print(f"  Order item number: {order_item_number}\n")
+
+        entry = build_psu_entry(
+            business_status=business_status,
+            order_number=order_number,
+            order_item_number=order_item_number,
+            nhs_number=nhs_number,
+            ods_code=this_ods_code,
+            last_modified=last_modified
+        )
+
+        entries.append(entry)
+
+    return build_psu_bundle(entries)

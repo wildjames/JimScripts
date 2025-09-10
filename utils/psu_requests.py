@@ -16,10 +16,10 @@ BUSINESS_STATUS_CHOICES = [
     "Ready to Collect",
     "Ready to Collect - Partial",
     "Collected",
-    "Dispatched",
-    "Not Dispensed",
     "Ready to Dispatch",
     "Ready to Dispatch - Partial"
+    "Dispatched",
+    "Not Dispensed",
 ]
 
 # Terminal statuses trigger Task.status = "completed"
