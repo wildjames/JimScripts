@@ -208,10 +208,14 @@ def main():
         api_key = get_env('API_KEY')
         kid = get_env('KID')
         private_key = load_private_key()
+        is_pr = get_env("IS_PR").strip().lower() == "true"
 
-        print(f"Sending bundle to {host}...")
+        token = ""
+        if not is_pr:
+            print("Getting access token...")
+            token = obtain_access_token(host, api_key, kid, private_key)
 
-        token = obtain_access_token(host, api_key, kid, private_key)
+        print("Sending PSU bundle...")
         resp, rid, cid = send_psu(host, token, bundle)
 
         print(f"Request ID: {rid}")

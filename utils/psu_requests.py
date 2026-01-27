@@ -4,7 +4,7 @@ import time
 import requests
 import jwt
 
-from utils.utils import iso_now
+from utils.utils import get_env, iso_now
 
 # Following the spec from here:
 # https://digital.nhs.uk/developer/api-catalogue/prescription-status-update-fhir#post-/
@@ -55,7 +55,8 @@ def build_psu_entry(
     order_item_number: str,
     nhs_number: str,
     ods_code: str,
-    last_modified: str | None = None
+    last_modified: str | None = None,
+    post_dated_timestamp: str | None = None
 ):
     bs = canonical_business_status(business_status)
     # Determine Task.status - this is defined by buisness logic not the user
@@ -110,6 +111,10 @@ def build_psu_entry(
             "url": "Task"
         }
     }
+    if post_dated_timestamp:
+        entry["resource"]["meta"] = {
+            "lastUpdated": post_dated_timestamp
+        }
     return entry
 
 
@@ -148,6 +153,12 @@ def obtain_access_token(host: str, api_key: str, kid: str, private_key: str) -> 
 
 def send_psu(host: str, token: str, bundle: str | dict[str, Any]) -> tuple[requests.Response, str, str]:
     url = f"https://{host}/prescription-status-update/"
+
+    is_pr = get_env("IS_PR").strip().lower() == "true"
+    if is_pr:
+        pr_number = get_env("PR_NUMBER")
+        url = f"https://psu-pr-{pr_number}.dev.eps.national.nhs.uk/"
+
     # x-request-id & x-correlation-id
     request_id = str(uuid.uuid4())
     correlation_id = str(uuid.uuid4())

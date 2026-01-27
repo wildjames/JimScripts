@@ -88,14 +88,15 @@ def find_nhs_number(entries: List[Dict[str, Any]]) -> str:
 def output_bundle(
     bundle: Dict[str, Any],
     to_clip: bool,
-    dense: bool = False
+    output_path: Optional[str] = None
 ):
-    indent = 2 if not dense else None
-    serialized = json.dumps(bundle, indent=indent)
+    serialized = json.dumps(bundle, indent=2)
 
     if to_clip:
         pyperclip.copy(serialized)
         print("Bundle copied to clipboard.")
+    elif output_path:
+        save_bundle("psu-bundle", bundle, os.path.dirname(output_path), find_nhs_number(bundle['entry']))
     else:
         print(serialized)
 
@@ -121,7 +122,7 @@ def save_bundle(
     with open(file_path, 'w') as f:
         json.dump(bundle, f, indent=2)
 
-    print(f"FHIR Bundle saved to {file_path}")
+    print(f"{file_path}")
 
 
 def load_private_key() -> str:

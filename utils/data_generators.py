@@ -167,16 +167,12 @@ def generate_prescription_id(ods_code: Optional[str] = None) -> str:
     check_digit = compute_presc_id_check_digit(formatted)
     return formatted + check_digit
 
-def calculate_presc_id_check_digit_total(input_str: str) -> int:
-    total = 0
-    input_str = input_str.replace('-', '')
-    for char in input_str:
-        total = ((total + int(char, 36)) * 2) % 37
-    return total
-
 
 def compute_presc_id_check_digit(prescription_id: str) -> str:
-    total = calculate_presc_id_check_digit_total(prescription_id)
+    total = 0
+    chars = prescription_id.replace('-', '')
+    for char in chars:
+        total = ((total + int(char, 36)) * 2) % 37
     # Find a check digit such that (total + value) % 37 == 1
     for i, ch in enumerate(PRESCRIPTION_ID_CHECK_DIGIT_VALUES):
         if (total + i) % 37 == 1:
