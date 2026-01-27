@@ -39,7 +39,7 @@ def main():
     output_bundle(
         bundle,
         False,
-        True
+        "data/pfp_responses/"
     )
     print("\n\n")
     save_bundle(
