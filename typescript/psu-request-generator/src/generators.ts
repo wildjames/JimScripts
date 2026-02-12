@@ -54,33 +54,48 @@ export function generateNhsNumber(options?: {invalid?: boolean; dummy?: boolean}
   }
 }
 
-export function generateOdsCode(length = 5): string {
-  if (length < 3 || length > 6) {
-    throw new Error("ODS code length must be between 3 and 5 characters.");
-  }
-
+export function generateOdsCode(length = 6): string {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const digits = "0123456789";
 
-  if (length === 3) {
-    return `${letters[randIndex(letters.length)]}${letters[randIndex(letters.length)]}${digits[randIndex(digits.length)]}`;
+  // I got these from looking at some examples I found in test data. I don't think they're hard rules.
+  const patterns: Record<number, string> = {
+    3: "LLD", 4: "LDDD", 5: "LLDDD", 6: "LDDDDD"
+  };
+
+  function randLetter() {
+    return letters[Math.floor(Math.random() * letters.length)];
   }
-  if (length === 4) {
-    return `${letters[randIndex(letters.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}`;
+  function randDigit() {
+    return digits[Math.floor(Math.random() * digits.length)];
   }
-  if (length === 5) {
-    return `${letters[randIndex(letters.length)]}${letters[randIndex(letters.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}`;
+
+  const pattern = patterns[length];
+  if (!pattern) {
+    throw new Error("ODS code length must be between 3 and 6 characters.");
   }
-  if (length === 6) {
-    return `${letters[randIndex(letters.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}${digits[randIndex(digits.length)]}`;
+
+  let out = "";
+  for (const char of pattern) {
+    switch (char) {
+      case "L":
+        out += randLetter();
+        break;
+      case "D":
+        out += randDigit();
+        break;
+    }
   }
-  throw new Error("ODS code length must be between 3 and 5 characters.");
+  return out;
 }
 
 export function generatePrescriptionId(odsCode?: string): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   const core = Array.from({length: 11}, () => chars[randIndex(chars.length)]).join("");
-  const ods = odsCode ?? generateOdsCode(6);
+  let ods = odsCode ?? generateOdsCode();
+  // ODS code either needs to be padded or trimmed to be 6 characters
+  if (ods.length > 6) {ods = ods.slice(0, 6);}
+  else if (ods.length < 6) {ods = ods.padEnd(6, "0");}
 
   const formatted = `${core.slice(0, 6)}-${ods}-${core.slice(6)}`;
   const checkDigit = computePrescriptionCheckDigit(formatted);

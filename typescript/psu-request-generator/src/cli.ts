@@ -6,10 +6,13 @@ import {generateCreatePrescriptionBundle} from "./index.js";
 
 const BUSINESS_STATUS_CHOICES = [
   "With Pharmacy",
+  "With Pharmacy - Preparing Remainder",
   "Ready to Collect",
-  "Ready to Dispatch",
-  "Dispatched",
+  "Ready to Collect - Partial",
   "Collected",
+  "Ready to Dispatch",
+  "Ready to Dispatch - Partial",
+  "Dispatched",
   "Not Dispensed"
 ];
 
@@ -22,6 +25,11 @@ function outputBundle(bundle: any, toClipboard: boolean, outputPath?: string): v
     console.error("Clipboard functionality not yet implemented. Use -o to save to file or omit for stdout.");
     process.exit(1);
   } else if (outputPath) {
+    // If it's a directory, save the file as the timestamp of when the command was run
+    if (outputPath.endsWith("/")) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      outputPath = `${outputPath}psu-bundle-${timestamp}.json`;
+    }
     writeFileSync(outputPath, serialized, 'utf-8');
     console.error(`Bundle saved to ${outputPath}`);
   } else {

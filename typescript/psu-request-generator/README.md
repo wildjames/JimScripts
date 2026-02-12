@@ -17,7 +17,7 @@ To use the CLI tool globally:
 npm link
 ```
 
-This makes the `generate-psu-request` command available system-wide.
+This makes the `generate-psu-request` command available system-wide. You may need to run as `sudo`.
 
 ## Usage
 
