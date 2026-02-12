@@ -42,7 +42,7 @@ def main():
     parser.add_argument(
         "--post-dated",
         help="The number of hours to post-date this prescription by",
-        type=int
+        type=float
     )
     parser.add_argument(
         "--num-entries",
@@ -87,8 +87,12 @@ def main():
 
         post_dated_timestamp = None
         if args.post_dated:
-            post_dated_timestamp = datetime.now(timezone.utc) + timedelta(hours=args.post_dated)
-            post_dated_timestamp = post_dated_timestamp.isoformat()
+            # The time it's scheduled to become active
+            last_modified = datetime.now(timezone.utc) + timedelta(hours=args.post_dated)
+            last_modified = last_modified.isoformat()
+
+            # Post dated timestamp is the submission time, i.e. now
+            post_dated_timestamp = datetime.now(timezone.utc).isoformat()
 
         entry = build_psu_entry(
             business_status=args.business_status,
