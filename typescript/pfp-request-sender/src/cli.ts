@@ -4,7 +4,7 @@ import {Command} from "commander";
 import {config} from "dotenv";
 
 import {fetchBundle, getPfpEnv} from "./pfp.js";
-import {outputBundle, saveBundle} from "./utils.js";
+import {saveBundle} from "./utils.js";
 
 async function main(): Promise<void> {
   config();
@@ -19,7 +19,7 @@ async function main(): Promise<void> {
     .option(
       "--save-dir <dir>",
       "Directory to save the generated FHIR Bundle JSON",
-      "./data/psu_requests"
+      "./data/pfp_responses"
     );
 
   program.parse();
@@ -40,8 +40,6 @@ async function main(): Promise<void> {
     nhsNumber
   );
 
-  outputBundle(bundle, false, "data/pfp_responses/");
-  console.log("\n\n");
   saveBundle("pfp_response", bundle, options.saveDir, nhsNumber);
 }
 
