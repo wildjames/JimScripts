@@ -1,57 +1,10 @@
 import {randomUUID} from "crypto";
+import {generateNhsNumber as generateNhsNumberImpl} from "nhs-number-generator";
+
 const PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
-const NHS_NUMBER_WEIGHTS = [10, 9, 8, 7, 6, 5, 4, 3, 2];
 
-export function calculateCheckDigit(nineDigits: string): number {
-  if (nineDigits.length !== 9 || !/^\d{9}$/.test(nineDigits)) {
-    throw new Error(`Input must be exactly 9 digits. Got ${nineDigits.length}`);
-  }
-
-  const total = nineDigits
-    .split("")
-    .map((digit, index) => parseInt(digit, 10) * NHS_NUMBER_WEIGHTS[index])
-    .reduce((sum, value) => sum + value, 0);
-
-  const remainder = total % 11;
-  const result = 11 - remainder;
-
-  if (result === 11) {
-    return 0;
-  }
-  if (result === 10) {
-    throw new Error("Invalid NHS number sequence (check digit would be 10).");
-  }
-  return result;
-}
-
-export function completeNhsNumber(nineDigits: string, invalid = false): string {
-  const checkDigit = calculateCheckDigit(nineDigits);
-  if (!invalid) {
-    return `${nineDigits}${checkDigit}`;
-  }
-
-  const choices = Array.from({length: 10}, (_, idx) => idx).filter(
-    (digit) => digit !== checkDigit
-  );
-  const selected = choices[Math.floor(Math.random() * choices.length)];
-  return `${nineDigits}${selected}`;
-}
-
-export function generateNhsNumber(options?: {invalid?: boolean; dummy?: boolean}): string {
-  const invalid = options?.invalid ?? false;
-  const dummy = options?.dummy ?? false;
-
-  while (true) {
-    const nineDigits = dummy
-      ? `999${Array.from({length: 6}, () => Math.floor(Math.random() * 10)).join("")}`
-      : Array.from({length: 9}, () => Math.floor(Math.random() * 10)).join("");
-
-    try {
-      return completeNhsNumber(nineDigits, invalid);
-    } catch {
-      continue;
-    }
-  }
+export function generateNhsNumber(): string {
+  return generateNhsNumberImpl();
 }
 
 export function generateOdsCode(length = 6): string {

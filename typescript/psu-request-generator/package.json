@@ -15,7 +15,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "nhs-number-generator": "file:../nhs-number-generator"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",
