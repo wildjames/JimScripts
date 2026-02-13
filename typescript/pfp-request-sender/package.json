@@ -1,0 +1,26 @@
+{
+  "name": "pfp-request-sender",
+  "version": "0.1.0",
+  "description": "Fetch prescriptions-for-patients bundles via OAuth2 auth-code flow",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "send-pfp-request": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.33",
+    "typescript": "^5.5.4"
+  }
+}

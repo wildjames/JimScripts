@@ -1,9 +1,13 @@
 TS_DIR := typescript
 PROJECTS := \
 	psu-request-generator \
-	psu-request-sender
+	psu-request-sender \
+	pfp-request-sender
 
 .PHONY: install build link clean
+
+install-playwright:
+	npx install playwright
 
 install:
 	@for project in $(PROJECTS); do \
