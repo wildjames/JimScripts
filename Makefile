@@ -3,7 +3,8 @@ PROJECTS := \
 	psu-request-generator \
 	psu-request-sender \
 	pfp-request-sender \
-	nhs-number-generator
+	nhs-number-generator \
+	prescription-id-generator
 
 .PHONY: install build link clean
 

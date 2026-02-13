@@ -1,12 +1,12 @@
 {
-  "name": "psu-request-generator",
+  "name": "prescription-id-generator",
   "version": "0.1.0",
-  "description": "Generate PSU Create Prescription FHIR bundles",
+  "description": "Generate prescription IDs",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "generate-psu-request": "./dist/cli.js"
+    "generate-prescription-ids": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -15,9 +15,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "nhs-number-generator": "file:../nhs-number-generator",
-    "prescription-id-generator": "file:../prescription-id-generator"
+    "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

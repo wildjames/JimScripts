@@ -1,10 +1,13 @@
 import {randomUUID} from "crypto";
 import {generateNhsNumber as generateNhsNumberImpl} from "nhs-number-generator";
-
-const PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
+import {generatePrescriptionId as generatePrescriptionIdImpl} from "prescription-id-generator";
 
 export function generateNhsNumber(): string {
   return generateNhsNumberImpl();
+}
+
+export function generatePrescriptionId(odsCode?: string): string {
+  return generatePrescriptionIdImpl(odsCode);
 }
 
 export function generateOdsCode(length = 6): string {
@@ -42,40 +45,6 @@ export function generateOdsCode(length = 6): string {
   return out;
 }
 
-export function generatePrescriptionId(odsCode?: string): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  const core = Array.from({length: 11}, () => chars[randIndex(chars.length)]).join("");
-  let ods = odsCode ?? generateOdsCode();
-  // ODS code either needs to be padded or trimmed to be 6 characters
-  if (ods.length > 6) {ods = ods.slice(0, 6);}
-  else if (ods.length < 6) {ods = ods.padEnd(6, "0");}
-
-  const formatted = `${core.slice(0, 6)}-${ods}-${core.slice(6)}`;
-  const checkDigit = computePrescriptionCheckDigit(formatted);
-  return `${formatted}${checkDigit}`;
-}
-
-export function computePrescriptionCheckDigit(prescriptionId: string): string {
-  let total = 0;
-  const chars = prescriptionId.replace(/-/g, "");
-
-  for (const char of chars) {
-    total = ((total + parseInt(char, 36)) * 2) % 37;
-  }
-
-  for (let i = 0; i < PRESCRIPTION_ID_CHECK_DIGIT_VALUES.length; i += 1) {
-    if ((total + i) % 37 === 1) {
-      return PRESCRIPTION_ID_CHECK_DIGIT_VALUES[i];
-    }
-  }
-
-  throw new Error("No valid check digit found");
-}
-
 export function generateOrderItemNumber(): string {
   return randomUUID();
-}
-
-function randIndex(max: number): number {
-  return Math.floor(Math.random() * max);
 }
