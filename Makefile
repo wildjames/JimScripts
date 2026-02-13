@@ -2,7 +2,8 @@ TS_DIR := typescript
 PROJECTS := \
 	psu-request-generator \
 	psu-request-sender \
-	pfp-request-sender
+	pfp-request-sender \
+	nhs-number-generator
 
 .PHONY: install build link clean
 

@@ -1,0 +1,24 @@
+{
+  "name": "nhs-number-generator",
+  "version": "0.1.0",
+  "description": "Generate and validate NHS numbers",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "generate-nhs-numbers": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.33",
+    "typescript": "^5.5.4"
+  }
+}
