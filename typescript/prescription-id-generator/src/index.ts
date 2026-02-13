@@ -5,6 +5,8 @@
  * Format: [6 alphanumeric]-[ODS]-[5 alphanumeric][check digit]
  */
 
+import {generateOdsCode} from "ods-code-generator";
+
 const PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
 const ALPHANUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -12,31 +14,7 @@ function randomChoice(chars: string): string {
   return chars[Math.floor(Math.random() * chars.length)];
 }
 
-/**
- * Generate a random ODS code of specified length.
- *
- * @param length - Length of the ODS code (3-6 characters)
- */
-export function generateOdsCode(length: number = 6): string {
-  if (length < 3 || length > 6) {
-    throw new Error("ODS code length must be between 3 and 6 characters.");
-  }
-
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const digits = "0123456789";
-
-  if (length === 3) {
-    return randomChoice(letters) + randomChoice(letters) + randomChoice(digits);
-  }
-  if (length === 4) {
-    return randomChoice(letters) + Array.from({length: 3}, () => randomChoice(digits)).join("");
-  }
-  if (length === 5) {
-    return randomChoice(letters) + randomChoice(letters) + Array.from({length: 3}, () => randomChoice(digits)).join("");
-  }
-
-  return randomChoice(letters) + Array.from({length: 5}, () => randomChoice(digits)).join("");
-}
+export {generateOdsCode};
 
 /**
  * Compute the prescription ID check digit for a formatted ID (without the final check digit).

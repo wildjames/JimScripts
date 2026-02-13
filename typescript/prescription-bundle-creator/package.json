@@ -18,6 +18,7 @@
     "@faker-js/faker": "^9.3.0",
     "commander": "^12.1.0",
     "nhs-number-generator": "file:../nhs-number-generator",
+    "ods-code-generator": "file:../ods-code-generator",
     "prescription-id-generator": "file:../prescription-id-generator"
   },
   "devDependencies": {

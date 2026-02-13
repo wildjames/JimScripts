@@ -4,6 +4,8 @@ PROJECTS := \
 	psu-request-sender \
 	pfp-request-sender \
 	nhs-number-generator \
+	ods-code-generator \
+	prescription-bundle-creator \
 	prescription-id-generator
 
 .PHONY: install build link clean

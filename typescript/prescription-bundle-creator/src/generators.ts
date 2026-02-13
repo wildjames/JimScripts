@@ -1,6 +1,7 @@
 import {faker} from "@faker-js/faker";
 import {generateNhsNumber as generateNhsNumberImpl} from "nhs-number-generator";
 import {generatePrescriptionId as generatePrescriptionIdImpl} from "prescription-id-generator";
+import {generateOdsCode as generateOdsCodeImpl} from "ods-code-generator";
 
 export function generateNhsNumber(): string {
   return generateNhsNumberImpl();
@@ -8,6 +9,10 @@ export function generateNhsNumber(): string {
 
 export function generatePrescriptionId(odsCode?: string): string {
   return generatePrescriptionIdImpl(odsCode);
+}
+
+export function generateOdsCode(length = 5): string {
+  return generateOdsCodeImpl(length);
 }
 
 interface PatientData {
@@ -32,31 +37,6 @@ interface PractitionerData {
   };
   phone: string;
   odsCode: string;
-}
-
-export function generateOdsCode(length = 5): string {
-  if (length < 3 || length > 6) {
-    throw new Error("ODS code length must be between 3 and 6 characters.");
-  }
-
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const digits = "0123456789";
-
-  const randLetter = () => letters[Math.floor(Math.random() * letters.length)];
-  const randDigit = () => digits[Math.floor(Math.random() * digits.length)];
-
-  // ODS code of the format "ANN", "AANNN", or "ANNNNN", where A is an uppercase letter and N is a digit.
-  if (length === 3) {
-    return randLetter() + randLetter() + randDigit();
-  } else if (length === 4) {
-    return randLetter() + randDigit() + randDigit() + randDigit();
-  } else if (length === 5) {
-    return randLetter() + randLetter() + randDigit() + randDigit() + randDigit();
-  } else if (length === 6) {
-    return randLetter() + randDigit() + randDigit() + randDigit() + randDigit() + randDigit();
-  }
-
-  throw new Error("ODS code length must be between 3 and 6 characters.");
 }
 
 export function generatePatientData(): PatientData {

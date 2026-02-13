@@ -1,12 +1,12 @@
 {
-  "name": "prescription-id-generator",
+  "name": "ods-code-generator",
   "version": "0.1.0",
-  "description": "Generate prescription IDs",
+  "description": "Generate ODS (Organisation Data Service) codes",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "generate-prescription-ids": "./dist/cli.js"
+    "generate-ods-codes": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -15,8 +15,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "ods-code-generator": "file:../ods-code-generator"
+    "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",
