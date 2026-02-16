@@ -1,6 +1,7 @@
 {
   "name": "prescription-id-generator",
   "version": "0.1.0",
+  "author": "Jim Wild <james.wild6@nhs.net",
   "description": "Generate prescription IDs",
   "type": "module",
   "main": "dist/index.js",

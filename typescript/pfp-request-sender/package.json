@@ -1,6 +1,7 @@
 {
   "name": "pfp-request-sender",
   "version": "0.1.0",
+  "author": "Jim Wild <james.wild6@nhs.net",
   "description": "Fetch prescriptions-for-patients bundles via OAuth2 auth-code flow",
   "type": "module",
   "main": "dist/index.js",

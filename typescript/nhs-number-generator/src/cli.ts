@@ -32,18 +32,9 @@ function main(): void {
   const options = program.opts();
 
   if (options.complete) {
-    try {
-      const nineDigits = options.complete;
-      const fullNumber = completeNhsNumber(nineDigits, options.invalid ?? false);
-      console.log(fullNumber);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(`Error: ${error.message}`);
-      } else {
-        console.error("An unknown error occurred");
-      }
-      process.exit(1);
-    }
+    const nineDigits = options.complete;
+    const fullNumber = completeNhsNumber(nineDigits, options.invalid ?? false);
+    console.log(fullNumber);
   } else {
     const count = options.count ?? 1;
     const invalid = options.invalid ?? false;

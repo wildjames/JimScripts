@@ -1,6 +1,7 @@
 {
   "name": "psu-request-generator",
   "version": "0.1.0",
+  "author": "Jim Wild <james.wild6@nhs.net",
   "description": "Generate PSU Create Prescription FHIR bundles",
   "type": "module",
   "main": "dist/index.js",

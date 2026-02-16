@@ -126,7 +126,7 @@ export async function getAccessTokenViaAuthCode(
     throw new Error("Token response missing access_token");
   }
 
-  console.log("Access token obtained successfully.", payload.access_token);
+  console.log("Access token obtained successfully: ", payload.access_token);
 
   return payload.access_token;
 }
@@ -153,7 +153,7 @@ export async function fetchBundle(
     "x-nhs-number": nhsNumber
   }
   console.log(`Fetching PfP Bundle for NHS number ${nhsNumber}...`);
-  console.log("Using headers:", headers);
+  console.log("Using headers:\n", headers);
   console.log()
 
   const response = await fetch(url, {

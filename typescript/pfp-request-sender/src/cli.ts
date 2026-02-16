@@ -13,13 +13,16 @@ async function main(): Promise<void> {
   program
     .name("send-pfp-request")
     .description(
-      "Fetch PfP Bundle for a given NHS number (using OAuth2 auth-code flow)"
+      "Fetch PfP Bundle for a given NHS number (using a headless OAuth2 session to authenticate)"
     )
-    .argument("<nhs_number>", "10-digit NHS number to query")
+    .argument(
+      "<nhs_number>",
+      "10-digit NHS number to query"
+    )
     .option(
       "--save-dir <dir>",
       "Directory to save the generated FHIR Bundle JSON",
-      "./data/pfp_responses"
+      "./data/pfp_responses/"
     );
 
   program.parse();

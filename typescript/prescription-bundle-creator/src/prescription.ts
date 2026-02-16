@@ -1,6 +1,7 @@
 import {randomUUID} from "crypto";
 import type {PatientData, PractitionerData} from "./generators.js";
 import {
+  generateNhsNumber,
   generateOdsCode,
   generatePatientData,
   generatePractitionerData,
@@ -59,6 +60,13 @@ const SAMPLE_MEDICATIONS: Medication[] = [
     periodUnit: "d",
   },
 ];
+
+function ensureNhsNumber(nhsNumber?: string): string {
+  if (!nhsNumber) {
+    return generateNhsNumber();
+  }
+  return nhsNumber;
+}
 
 function ensurePharmacyOds(pharmacyOds?: string): string {
   if (!pharmacyOds) {
@@ -378,14 +386,15 @@ function buildHeaderEntry(
 }
 
 export interface CreatePrescriptionOptions {
-  nhsNumber: string;
   count: number;
+  nhsNumber?: string;
   pharmacyOds?: string;
   practitionerOds?: string;
 }
 
 export function createPrescriptionMessageBundle(options: CreatePrescriptionOptions): any {
   // Generate people and places
+  const nhsNumber = ensureNhsNumber(options.nhsNumber);
   const pharmacyOds = ensurePharmacyOds(options.pharmacyOds);
   const practitionerData = generatePractitionerData(options.practitionerOds);
   const patientData = generatePatientData();
@@ -429,7 +438,7 @@ export function createPrescriptionMessageBundle(options: CreatePrescriptionOptio
   entries.push(...medRequests);
 
   const patientEntry = buildPatientEntry(
-    options.nhsNumber,
+    nhsNumber,
     patientData,
     practitionerData.odsCode,
     ids.patient

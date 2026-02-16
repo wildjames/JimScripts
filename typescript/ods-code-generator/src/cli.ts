@@ -23,6 +23,7 @@ function main(): void {
   program.parse();
 
   const options = program.opts();
+  // For some reason, if I pass in parseInt to the option, it comes out as NaN
   const count = Number.parseInt(options.count, 10);
   const length = Number.parseInt(options.length, 10);
 
@@ -36,17 +37,8 @@ function main(): void {
     process.exit(1);
   }
 
-  try {
-    const codes = generateOdsCodes(count, length);
-    codes.forEach(code => console.log(code));
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(`Error: ${error.message}`);
-    } else {
-      console.error("An unknown error occurred");
-    }
-    process.exit(1);
-  }
+  const codes = generateOdsCodes(count, length);
+  codes.forEach(code => console.log(code));
 }
 
 main();

@@ -2,11 +2,12 @@
 
 import {Command} from "commander";
 import {writeFileSync, mkdirSync, existsSync} from "fs";
-import {dirname, join} from "path";
+import {join} from "path";
 import {createPrescriptionMessageBundle} from "./prescription.js";
 import {generateNhsNumber} from "./generators.js";
 
 function findNhsNumber(bundle: any): string {
+  // This is probably not robust enough - but it will work for now. If it ever fails, I'll have to rework it
   // Look through entries to find NHS number
   for (const entry of bundle.entry || []) {
     const resource = entry.resource;
@@ -46,6 +47,7 @@ function outputBundle(bundle: any, toClipboard: boolean): void {
   const serialized = JSON.stringify(bundle, null, 2);
 
   if (toClipboard) {
+    // TODO: Implement clipboard functionality
     console.error("Clipboard functionality not yet implemented.");
     console.log(serialized);
   } else {
@@ -87,14 +89,8 @@ function main(): void {
 
   const options = program.opts();
 
-  let nhsNumber = options.nhsNumber;
-  if (!nhsNumber) {
-    nhsNumber = generateNhsNumber();
-    console.error(`Generated NHS number: ${nhsNumber}`);
-  }
-
   const bundle = createPrescriptionMessageBundle({
-    nhsNumber,
+    nhsNumber: options.nhsNumber,
     count: options.count,
     pharmacyOds: options.pharmacyOds,
     practitionerOds: options.practitionerOds

@@ -10,7 +10,7 @@ npm run build
 sudo npm link
 ```
 
-Or use the Makefile from the repository root:
+Or use the Makefile from the repository root (run as sudo):
 
 ```bash
 make link

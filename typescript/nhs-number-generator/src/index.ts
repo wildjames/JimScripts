@@ -5,7 +5,7 @@
  * https://archive.datadictionary.nhs.uk/DD%20Release%20May%202024/attributes/nhs_number.html
  */
 
-// Multipliers for the first 9 digits (10, 9, 8, ..., 2)
+// Multipliers for the first 9 digits
 const NHS_NUMBER_WEIGHTS = [10, 9, 8, 7, 6, 5, 4, 3, 2];
 
 /**
@@ -38,6 +38,8 @@ export function calculateCheckDigit(nineDigits: string): number {
 
 /**
  * Return a complete NHS number by appending the correct or incorrect check digit.
+ * Note that if the NHS number is invalid (i.e. the correct check digit is 10), this
+ * will still throw an erorr - numbers will ONLY be invalid due to check digits.
  *
  * @param nineDigits - A string of 9 numeric characters
  * @param invalid - If true, append an incorrect check digit

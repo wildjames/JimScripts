@@ -1,6 +1,7 @@
 {
   "name": "ods-code-generator",
   "version": "0.1.0",
+  "author": "Jim Wild <james.wild6@nhs.net",
   "description": "Generate ODS (Organisation Data Service) codes",
   "type": "module",
   "main": "dist/index.js",

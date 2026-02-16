@@ -4,9 +4,6 @@ export {
 } from "./prescription.js";
 
 export {
-  generateNhsNumber,
-  generateOdsCode,
-  generatePrescriptionId,
   generatePatientData,
   generatePractitionerData,
   type PatientData,

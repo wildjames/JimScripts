@@ -21,11 +21,11 @@ async function main(): Promise<void> {
   const program = new Command();
   program
     .name("send-psu-request")
-    .description(descriptionParts.join(" "))
+    .description(descriptionParts.join("\n"))
     .requiredOption("--input <file>", "Path to JSON bundle file");
 
   program.parse();
-  const options = program.opts<{input: string}>();
+  const options = program.opts();
 
   const privateKey = loadPrivateKey();
   const apiKey = getEnv("API_KEY");

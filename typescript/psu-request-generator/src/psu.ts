@@ -1,4 +1,4 @@
-const BUSINESS_STATUS_CHOICES = [
+export const BUSINESS_STATUS_CHOICES = [
   "With Pharmacy",
   "With Pharmacy - Preparing Remainder",
   "Ready to Collect",

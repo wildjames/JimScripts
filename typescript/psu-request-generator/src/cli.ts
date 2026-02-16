@@ -2,25 +2,15 @@
 
 import {Command} from "commander";
 import {writeFileSync} from "fs";
-import {generateCreatePrescriptionBundle} from "./index.js";
 
-const BUSINESS_STATUS_CHOICES = [
-  "With Pharmacy",
-  "With Pharmacy - Preparing Remainder",
-  "Ready to Collect",
-  "Ready to Collect - Partial",
-  "Collected",
-  "Ready to Dispatch",
-  "Ready to Dispatch - Partial",
-  "Dispatched",
-  "Not Dispensed"
-];
+import {generateCreatePrescriptionBundle} from "./index.js";
+import {BUSINESS_STATUS_CHOICES} from "./psu.js";
 
 function outputBundle(bundle: any, toClipboard: boolean, outputPath?: string): void {
   const serialized = JSON.stringify(bundle, null, 2);
 
   if (toClipboard) {
-    // Note: clipboard functionality requires a clipboard package
+    // TODO: clipboard functionality requires a clipboard package
     // For now, we'll just print a message
     console.error("Clipboard functionality not yet implemented. Use -o to save to file or omit for stdout.");
     process.exit(1);
