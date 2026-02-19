@@ -1,8 +1,8 @@
 {
-  "name": "prescription-bundle-creator",
+  "name": "create-prescription-bundle",
   "version": "0.1.0",
   "author": "Jim Wild <james.wild6@nhs.net",
-  "description": "Generate FHIR prescription bundles",
+  "description": "Generate FHIR 'create prescription' bundles",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
