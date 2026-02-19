@@ -1,7 +1,6 @@
 /**
  * Prescription ID Generation
  *
- * Mirrors the Python implementation in python/utils/data_generators.py
  * Format: [6 alphanumeric]-[ODS]-[5 alphanumeric][check digit]
  */
 

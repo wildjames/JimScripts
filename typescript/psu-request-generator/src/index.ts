@@ -3,6 +3,8 @@ import {randomUUID} from "crypto";
 import {
   buildPsuBundle,
   buildPsuEntry,
+  BUSINESS_STATUS_CHOICES,
+  canonicalBusinessStatus,
   type Bundle,
   type BusinessStatus,
   type PsuEntry
@@ -63,4 +65,10 @@ export function generateCreatePrescriptionBundle(
   return buildPsuBundle(entries);
 }
 
-export type {Bundle, BusinessStatus};
+export type {Bundle, BusinessStatus, PsuEntry};
+export {
+  BUSINESS_STATUS_CHOICES,
+  canonicalBusinessStatus,
+  buildPsuEntry,
+  buildPsuBundle
+};

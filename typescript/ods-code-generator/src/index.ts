@@ -13,7 +13,7 @@
  * @throws Error if length is not between 3 and 6
  */
 export function generateOdsCode(length = 6): string {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const letters = "AFGVK";
   const digits = "0123456789";
 
   // Patterns observed from test data - not necessarily hard rules

@@ -5,7 +5,8 @@ export const BUSINESS_STATUS_CHOICES = [
   "Ready to Collect - Partial",
   "Collected",
   "Ready to Dispatch",
-  "Ready to Dispatch - PartialDispatched",
+  "Ready to Dispatch - Partial",
+  "Dispatched",
   "Not Dispensed"
 ] as const;
 
