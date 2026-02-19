@@ -1,0 +1,32 @@
+{
+  "name": "psu-request-wizard",
+  "version": "0.1.0",
+  "author": "Jim Wild <james.wild6@nhs.net",
+  "description": "Interactive wizard to create PSU request bundles from PfP data or generated values",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "psu-wizard": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "nhs-number-generator": "file:../nhs-number-generator",
+    "ods-code-generator": "file:../ods-code-generator",
+    "pfp-request-sender": "file:../pfp-request-sender",
+    "prescription-id-generator": "file:../prescription-id-generator",
+    "psu-request-generator": "file:../psu-request-generator",
+    "psu-request-sender": "file:../psu-request-sender"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.33",
+    "typescript": "^5.5.4"
+  }
+}

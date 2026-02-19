@@ -1,6 +1,7 @@
 TS_DIR := typescript
 PROJECTS := \
 	psu-request-generator \
+	psu-request-wizard \
 	psu-request-sender \
 	pfp-request-sender \
 	nhs-number-generator \
