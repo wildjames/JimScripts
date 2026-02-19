@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "apim-cli-helper"
+version = "0.1.0"
+description = "CLI tool for obtaining NHS APIM authentication tokens"
+authors = ["Jim Wild"]
+readme = "README.md"
+packages = [{include = "apim_cli_helper"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pytest-nhsd-apim = ">=6.0.7"
+
+[tool.poetry.scripts]
+apim-token = "apim_cli_helper.get_token:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
