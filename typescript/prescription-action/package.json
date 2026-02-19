@@ -1,13 +1,13 @@
 {
-  "name": "psu-request-generator",
+  "name": "prescription-action",
   "version": "0.1.0",
   "author": "Jim Wild <james.wild6@nhs.net",
-  "description": "Generate PSU Create Prescription FHIR bundles",
+  "description": "Create FHIR prescription action bundles from a create-prescription bundle",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "generate-psu-request": "./dist/cli.js"
+    "prescription-action": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -16,10 +16,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "commander": "^12.1.0",
-    "nhs-number-generator": "*",
-    "ods-code-generator": "*",
-    "prescription-id-generator": "*"
+    "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

@@ -1,43 +1,18 @@
 TS_DIR := typescript
-PROJECTS := \
-	psu-request-generator \
-	psu-request-wizard \
-	psu-request-sender \
-	pfp-request-sender \
-	nhs-number-generator \
-	ods-code-generator \
-	prescription-bundle-creator \
-	prescription-id-generator
 
 .PHONY: install build link clean
 
 install-playwright:
-	npx install playwright
+	cd $(TS_DIR) && npm run install-playwright
 
 install:
-	@for project in $(PROJECTS); do \
-		echo "==> Installing $$project"; \
-		cd $(TS_DIR)/$$project && npm install; \
-		cd ../..; \
-	done
+	cd $(TS_DIR) && npm install
 
 build: install
-	@for project in $(PROJECTS); do \
-		echo "==> Building $$project"; \
-		cd $(TS_DIR)/$$project && npm run build; \
-		cd ../..; \
-	done
+	cd $(TS_DIR) && npm run build
 
 link: build
-	@for project in $(PROJECTS); do \
-		echo "==> Linking $$project"; \
-		cd $(TS_DIR)/$$project && sudo npm link; \
-		cd ../..; \
-	done
+	cd $(TS_DIR) && npm link
 
 clean:
-	@for project in $(PROJECTS); do \
-		echo "==> Cleaning $$project"; \
-		rm -rf $(TS_DIR)/$$project/dist; \
-		cd ../..; \
-	done
+	cd $(TS_DIR) && npm run clean

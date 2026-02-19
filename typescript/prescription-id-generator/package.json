@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "ods-code-generator": "file:../ods-code-generator"
+    "ods-code-generator": "*"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

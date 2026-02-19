@@ -411,6 +411,7 @@ export function createPrescriptionMessageBundle(options: CreatePrescriptionOptio
   };
 
   const groupOrderNumber = generatePrescriptionId(practitionerData.odsCode);
+  console.log(`Generated prescription order number: ${groupOrderNumber}`);
   const prescriptionId = randomUUID();
 
   // Build the medication requests

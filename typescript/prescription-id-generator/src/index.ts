@@ -52,8 +52,10 @@ export function generatePrescriptionId(odsCode?: string): string {
   if (resolvedOds.length > 6) {
     paddedOds = resolvedOds.slice(0, 6);
   } else if (resolvedOds.length < 6) {
+    console.log(`ODS code '${resolvedOds}' is shorter than 6 characters, padding with zeros.`);
     paddedOds = resolvedOds.padEnd(6, "0");
   }
+  console.log(`Using ODS code: ${paddedOds}`);
 
   const formatted = `${core.slice(0, 6)}-${paddedOds}-${core.slice(6)}`;
   const checkDigit = computePrescriptionIdCheckDigit(formatted);

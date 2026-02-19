@@ -18,12 +18,12 @@
   "dependencies": {
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
-    "nhs-number-generator": "file:../nhs-number-generator",
-    "ods-code-generator": "file:../ods-code-generator",
-    "pfp-request-sender": "file:../pfp-request-sender",
-    "prescription-id-generator": "file:../prescription-id-generator",
-    "psu-request-generator": "file:../psu-request-generator",
-    "psu-request-sender": "file:../psu-request-sender"
+    "nhs-number-generator": "*",
+    "ods-code-generator": "*",
+    "pfp-request-sender": "*",
+    "prescription-id-generator": "*",
+    "psu-request-generator": "*",
+    "psu-request-sender": "*"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",
