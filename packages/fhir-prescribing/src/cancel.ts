@@ -1,6 +1,7 @@
 import {randomUUID} from "crypto";
 import {cloneBundle} from "./utils.js";
-import type {BundleLike} from "./types.js";
+import {sendFhirRequest} from "./http.js";
+import type {BundleLike, SubmitCancellationOptions, SubmitCancellationResult} from "./types.js";
 
 // https://digital.nhs.uk/developer/api-catalogue/eps-fhir-prescribing-api#post-/FHIR/R4/$process-message-prescription-order-update
 
@@ -69,4 +70,38 @@ export function createCancellationBundle(
   updateMedicationRequestsForCancellation(output, reasonCode, reasonDisplay);
 
   return output;
+}
+
+export async function createAndSubmitCancellation(
+  options: SubmitCancellationOptions
+): Promise<SubmitCancellationResult> {
+  const {host, token, bundle, urid} = options;
+  const cancellationBundle = createCancellationBundle(bundle);
+
+  const {response, requestId, correlationId} = await sendFhirRequest({
+    host,
+    path: "/fhir-prescribing/FHIR/R4/$process-message",
+    token,
+    body: cancellationBundle,
+    urid
+  });
+
+  const bodyText = await response.text();
+  let body: unknown;
+  try {
+    body = JSON.parse(bodyText);
+  } catch {
+    body = bodyText;
+  }
+
+  return {
+    response: {
+      status: response.status,
+      statusText: response.statusText,
+      body
+    },
+    cancellationBundle,
+    requestId,
+    correlationId
+  };
 }

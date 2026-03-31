@@ -7,7 +7,7 @@
 import {generateOdsCode} from "ods-code-generator";
 
 const PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
-const ALPHANUM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const ALPHANUM = "ABCDEF0123456789";
 
 function randomChoice(chars: string): string {
   return chars[Math.floor(Math.random() * chars.length)];

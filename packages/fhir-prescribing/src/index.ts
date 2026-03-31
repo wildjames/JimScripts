@@ -11,8 +11,6 @@ export {
 
 export {cloneBundle, getEnv, loadPrivateKey, loadBundle} from "./utils.js";
 
-export {obtainAccessToken} from "./auth.js";
-
 export {sendFhirRequest, type FhirRequestOptions, type FhirRequestResult} from "./http.js";
 
 export {preparePrescription} from "./prepare.js";
@@ -21,9 +19,9 @@ export {signDigest, prepareAndSign} from "./signing.js";
 
 export {addProvenanceToBundle} from "./provenance.js";
 
-export {createCancellationBundle, type CancellationOptions} from "./cancel.js";
+export {createCancellationBundle, createAndSubmitCancellation, type CancellationOptions} from "./cancel.js";
 
-export {createAndSubmitPrescription, createAndSubmitPrescriptionUserRestricted} from "./create.js";
+export {createAndSubmitPrescription} from "./create.js";
 
 export {
   obtainUserRestrictedAccessToken,

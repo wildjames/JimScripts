@@ -17,9 +17,9 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "nhs-number-generator": "*",
-    "ods-code-generator": "*",
-    "prescription-id-generator": "*"
+    "nhs-number-generator": "^0.1.0",
+    "ods-code-generator": "^0.1.0",
+    "prescription-id-generator": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

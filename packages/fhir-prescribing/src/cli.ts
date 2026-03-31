@@ -7,9 +7,7 @@ import {join} from "path";
 
 import {
   createAndSubmitPrescription,
-  createAndSubmitPrescriptionUserRestricted,
-  createCancellationBundle,
-  obtainAccessToken,
+  createAndSubmitCancellation,
   preparePrescription,
   prepareAndSign,
   SUPPORTED_ACTIONS,
@@ -71,49 +69,34 @@ function parseAction(action: string): PrescriptionAction {
   return action as PrescriptionAction;
 }
 
-async function handleCreate(options: {input: string; saveDir: string; urid?: string; algorithm?: string; userRestricted?: boolean; userType?: string}): Promise<void> {
+async function handleCreate(options: {input: string; saveDir: string; urid?: string; algorithm?: string; userType?: string}): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
   const inputBundle = readInputBundle(options.input);
 
   let result;
 
-  if (options.userRestricted) {
-    const clientId = getEnv("PRESCRIBE_APP_KEY");
-    const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
-    const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
-    const userType = (options.userType ?? "prescriber") as Cis2UserType;
+  const clientId = getEnv("PRESCRIBE_APP_KEY");
+  const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
+  const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
+  const userType = (options.userType ?? "prescriber") as Cis2UserType;
 
-    const {accessToken, urid} = await obtainUserRestrictedAccessToken({
-      host,
-      clientId,
-      clientSecret,
-      redirectUri,
-      userType
-    });
+  const {accessToken, urid} = await obtainUserRestrictedAccessToken({
+    host,
+    clientId,
+    clientSecret,
+    redirectUri,
+    userType
+  });
 
-    result = await createAndSubmitPrescriptionUserRestricted({
-      host,
-      token: accessToken,
-      privateKey,
-      bundle: inputBundle,
-      urid: options.urid ?? urid,
-      algorithm: options.algorithm
-    });
-  } else {
-    const apiKey = getEnv("PRESCRIBE_API_KEY");
-    const kid = getEnv("PRESCRIBE_KID");
-
-    result = await createAndSubmitPrescription({
-      host,
-      apiKey,
-      kid,
-      privateKey,
-      bundle: inputBundle,
-      urid: options.urid,
-      algorithm: options.algorithm
-    });
-  }
+  result = await createAndSubmitPrescription({
+    host,
+    token: accessToken,
+    privateKey,
+    bundle: inputBundle,
+    urid: options.urid ?? urid,
+    algorithm: options.algorithm
+  });
 
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
@@ -124,17 +107,40 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
   console.log(outputPath);
 }
 
-function handleCancel(options: {input: string; saveDir: string}): void {
+async function handleCancel(options: {input: string; saveDir: string; urid?: string; userType?: string}): Promise<void> {
+  const host = getEnv("HOST");
   const inputBundle = readInputBundle(options.input);
-  const outputBundle = createCancellationBundle(inputBundle);
 
-  console.log(JSON.stringify(outputBundle, null, 2));
+  const clientId = getEnv("PRESCRIBE_APP_KEY");
+  const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
+  const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
+  const userType = (options.userType ?? "prescriber") as Cis2UserType;
 
-  const outputPath = saveBundle("cancel", outputBundle, options.saveDir);
+  const {accessToken, urid} = await obtainUserRestrictedAccessToken({
+    host,
+    clientId,
+    clientSecret,
+    redirectUri,
+    userType
+  });
+
+  const result = await createAndSubmitCancellation({
+    host,
+    token: accessToken,
+    bundle: inputBundle,
+    urid: options.urid ?? urid
+  });
+
+  console.log(`Request ID: ${result.requestId}`);
+  console.log(`Correlation ID: ${result.correlationId}`);
+  console.log(`Response: ${result.response.status} ${result.response.statusText}`);
+  console.log(JSON.stringify(result.response.body, null, 2));
+
+  const outputPath = saveBundle("cancel", result.cancellationBundle, options.saveDir);
   console.log(outputPath);
 }
 
-async function handleSign(options: {input: string; urid?: string; algorithm?: string; prepareOnly?: boolean; userRestricted?: boolean; userType?: string}): Promise<void> {
+async function handleSign(options: {input: string; urid?: string; algorithm?: string; prepareOnly?: boolean; userType?: string}): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
   const bundle = JSON.parse(readFileSync(options.input, "utf-8"));
@@ -142,26 +148,20 @@ async function handleSign(options: {input: string; urid?: string; algorithm?: st
   let token: string;
   let resolvedUrid = options.urid;
 
-  if (options.userRestricted) {
-    const clientId = getEnv("PRESCRIBE_APP_KEY");
-    const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
-    const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
-    const userType = (options.userType ?? "prescriber") as Cis2UserType;
+  const clientId = getEnv("PRESCRIBE_APP_KEY");
+  const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
+  const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
+  const userType = (options.userType ?? "prescriber") as Cis2UserType;
 
-    const authResult = await obtainUserRestrictedAccessToken({
-      host,
-      clientId,
-      clientSecret,
-      redirectUri,
-      userType
-    });
-    token = authResult.accessToken;
-    resolvedUrid = resolvedUrid ?? authResult.urid;
-  } else {
-    const apiKey = getEnv("PRESCRIBE_API_KEY");
-    const kid = getEnv("PRESCRIBE_KID");
-    token = await obtainAccessToken(host, apiKey, kid, privateKey);
-  }
+  const authResult = await obtainUserRestrictedAccessToken({
+    host,
+    clientId,
+    clientSecret,
+    redirectUri,
+    userType
+  });
+  token = authResult.accessToken;
+  resolvedUrid = resolvedUrid ?? authResult.urid;
 
   if (options.prepareOnly) {
     const {digest, timestamp} = await preparePrescription(host, token, bundle, resolvedUrid);
@@ -190,7 +190,7 @@ async function main(): Promise<void> {
     .requiredOption("--action <action>", `Action to perform (${SUPPORTED_ACTIONS.join(" | ")})`)
     .requiredOption("--input <file>", "Input prescription bundle JSON file")
     .option("--save-dir <directory>", "Directory to save output Bundle JSON", "./data/prescriptions")
-    .option("--urid <urid>", "NHSD-Session-URID value (create/sign)")
+    .option("--urid <urid>", "NHSD-Session-URID value (create/cancel/sign)")
     .option("--algorithm <alg>", "Signing algorithm (create/sign)", "RSA-SHA1")
     .option("--prepare-only", "Only call $prepare and return the digest without signing (sign only)", false)
     .option("--user-restricted", "Use user-restricted (CIS2 browser) auth instead of app-restricted", false)
@@ -219,7 +219,7 @@ async function main(): Promise<void> {
       await handleCreate(opts);
       break;
     case "cancel":
-      handleCancel(opts);
+      await handleCancel(opts);
       break;
     case "sign":
       await handleSign(opts);

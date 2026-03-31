@@ -1,4 +1,3 @@
-import {obtainAccessToken} from "./auth.js";
 import {sendFhirRequest} from "./http.js";
 import {preparePrescription} from "./prepare.js";
 import {addProvenanceToBundle} from "./provenance.js";
@@ -12,16 +11,6 @@ import type {
 // https://digital.nhs.uk/developer/api-catalogue/eps-fhir-prescribing-api#post-/FHIR/R4/$process-message-prescription-order
 
 export async function createAndSubmitPrescription(
-  options: CreatePrescriptionFlowOptions
-): Promise<CreatePrescriptionResult> {
-  const {host, apiKey, kid, privateKey, bundle, urid, algorithm} = options;
-
-  const token = await obtainAccessToken(host, apiKey, kid, privateKey);
-
-  return submitPrescriptionWithToken({host, token, privateKey, bundle, urid, algorithm});
-}
-
-export async function createAndSubmitPrescriptionUserRestricted(
   options: CreatePrescriptionUserRestrictedOptions
 ): Promise<CreatePrescriptionResult> {
   return submitPrescriptionWithToken(options);

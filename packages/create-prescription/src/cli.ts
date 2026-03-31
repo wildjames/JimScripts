@@ -4,7 +4,6 @@ import {Command} from "commander";
 import {writeFileSync, mkdirSync, existsSync} from "fs";
 import {join} from "path";
 import {createPrescriptionMessageBundle} from "./prescription.js";
-import {generateNhsNumber} from "./generators.js";
 
 function findNhsNumber(bundle: any): string {
   // This is probably not robust enough - but it will work for now. If it ever fails, I'll have to rework it
@@ -41,18 +40,6 @@ function saveBundle(prefix: string, bundle: any, saveDir: string): void {
 
   writeFileSync(filePath, JSON.stringify(bundle, null, 2), 'utf-8');
   console.log(filePath);
-}
-
-function outputBundle(bundle: any, toClipboard: boolean): void {
-  const serialized = JSON.stringify(bundle, null, 2);
-
-  if (toClipboard) {
-    // TODO: Implement clipboard functionality
-    console.error("Clipboard functionality not yet implemented.");
-    console.log(serialized);
-  } else {
-    console.log(serialized);
-  }
 }
 
 function main(): void {
@@ -96,7 +83,6 @@ function main(): void {
     practitionerOds: options.practitionerOds
   });
 
-  outputBundle(bundle, false);
   saveBundle("prescription-bundle", bundle, options.saveDir);
 }
 

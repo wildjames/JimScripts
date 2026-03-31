@@ -74,3 +74,21 @@ export interface CreatePrescriptionResult {
   requestId: string;
   correlationId: string;
 }
+
+export interface SubmitCancellationOptions {
+  host: string;
+  token: string;
+  bundle: BundleLike;
+  urid?: string;
+}
+
+export interface SubmitCancellationResult {
+  response: {
+    status: number;
+    statusText: string;
+    body: unknown;
+  };
+  cancellationBundle: BundleLike;
+  requestId: string;
+  correlationId: string;
+}

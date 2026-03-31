@@ -1,6 +1,6 @@
 # FHIR Prescribing
 
-Perform EPS FHIR prescribing actions: create, cancel.
+Perform EPS FHIR prescribing actions: create, cancel, and sign.
 
 This TypeScript package provides both a CLI tool and a programmatic API for EPS prescribing workflows.
 
@@ -8,7 +8,8 @@ This TypeScript package provides both a CLI tool and a programmatic API for EPS 
 
 The package recognises these actions:
 - `create` — prepare, sign, and submit a prescription to EPS
-- `cancel` — generate a cancellation bundle from an existing prescription
+- `cancel` — generate a cancellation bundle from an existing prescription and submit it to EPS
+- `sign` — call `$prepare` and sign digests (or return digest with `--prepare-only`)
 
 ## Installation
 
@@ -28,19 +29,20 @@ fhir-prescribing --action create --input ./data/prescriptions/prescription-bundl
 # Create with optional URID
 fhir-prescribing --action create --input ./bundle.json --urid 555254240100
 
-# Cancel: generate a cancellation bundle
+# Cancel: generate and submit a cancellation bundle
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle.json
 ```
 
 **Options:**
-- `--action <action>` - One of `create | cancel`
+- `--action <action>` - One of `create | cancel | sign`
 - `--input <file>` - Input prescription bundle JSON
 - `--save-dir <directory>` - Directory to save output bundle JSON (default: `./data/prescriptions`)
-- `--urid <urid>` - NHSD-Session-URID value (create only)
-- `--algorithm <alg>` - Signing algorithm (create only, default: `RSA-SHA1`)
+- `--urid <urid>` - NHSD-Session-URID value (create/cancel/sign)
+- `--algorithm <alg>` - Signing algorithm (create/sign, default: `RSA-SHA1`)
+- `--prepare-only` - Return digest only (sign only)
 - `-h, --help` - Display help
 
-### Required Environment Variables (for `create`)
+### Required Environment Variables (for `create`, `cancel`, and `sign`)
 
 - `HOST`: e.g. `internal-dev.api.service.nhs.uk`
 - `PRESCRIBE_API_KEY`: APIM application API key
@@ -52,7 +54,8 @@ fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundl
 ```typescript
 import {
   createAndSubmitPrescription,
-  createPrescriptionActionBundle
+  createCancellationBundle,
+  createAndSubmitCancellation
 } from "fhir-prescribing";
 
 // Create: full flow - prepare, sign, submit
@@ -62,9 +65,13 @@ const result = await createAndSubmitPrescription({
 });
 
 // Cancel: synchronous bundle transformation
-const cancellationBundle = createPrescriptionActionBundle({
-  action: "cancel",
-  inputBundle: createBundleJson
+const cancellationBundle = createCancellationBundle(createBundleJson);
+
+// Cancel and submit
+const cancellationResult = await createAndSubmitCancellation({
+  host,
+  token,
+  bundle: createBundleJson
 });
 ```
 
@@ -85,6 +92,7 @@ For each cancellation bundle generated from an input create bundle:
 - Clears `MessageHeader.focus`
 - Sets each `MedicationRequest.status` to `cancelled`
 - Adds `MedicationRequest.statusReason` with code `0001` (Prescribing Error)
+- Submits the cancellation bundle to `POST /fhir-prescribing/FHIR/R4/$process-message`
 
 ## License
 
