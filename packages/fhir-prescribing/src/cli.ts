@@ -7,11 +7,17 @@ import {join} from "path";
 
 import {
   createAndSubmitPrescription,
+  createAndSubmitPrescriptionUserRestricted,
   createCancellationBundle,
+  obtainAccessToken,
+  preparePrescription,
+  prepareAndSign,
   SUPPORTED_ACTIONS,
   type BundleLike,
   type PrescriptionAction
 } from "./index.js";
+import {getEnv, loadPrivateKey} from "./utils.js";
+import {obtainUserRestrictedAccessToken, type Cis2UserType} from "./user-auth.js";
 
 function readInputBundle(filePath: string): BundleLike {
   const content = readFileSync(filePath, "utf-8");
@@ -65,46 +71,49 @@ function parseAction(action: string): PrescriptionAction {
   return action as PrescriptionAction;
 }
 
-function getEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} not set in .env`);
-  }
-  return value;
-}
-
-function loadPrivateKey(): string {
-  const key = process.env.PRESCRIBE_PRIVATE_KEY;
-  const path = process.env.PRESCRIBE_PRIVATE_KEY_PATH;
-
-  if (key) {
-    return key.replace(/\\n/g, "\n");
-  }
-
-  if (path && existsSync(path)) {
-    return readFileSync(path, "utf-8");
-  }
-
-  throw new Error("set PRESCRIBE_PRIVATE_KEY or PRESCRIBE_PRIVATE_KEY_PATH in your .env");
-}
-
-async function handleCreate(options: {input: string; saveDir: string; urid?: string; algorithm?: string}): Promise<void> {
+async function handleCreate(options: {input: string; saveDir: string; urid?: string; algorithm?: string; userRestricted?: boolean; userType?: string}): Promise<void> {
   const privateKey = loadPrivateKey();
-  const apiKey = getEnv("PRESCRIBE_API_KEY");
   const host = getEnv("HOST");
-  const kid = getEnv("PRESCRIBE_KID");
-
   const inputBundle = readInputBundle(options.input);
 
-  const result = await createAndSubmitPrescription({
-    host,
-    apiKey,
-    kid,
-    privateKey,
-    bundle: inputBundle,
-    urid: options.urid,
-    algorithm: options.algorithm
-  });
+  let result;
+
+  if (options.userRestricted) {
+    const clientId = getEnv("PRESCRIBE_APP_KEY");
+    const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
+    const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
+    const userType = (options.userType ?? "prescriber") as Cis2UserType;
+
+    const {accessToken, urid} = await obtainUserRestrictedAccessToken({
+      host,
+      clientId,
+      clientSecret,
+      redirectUri,
+      userType
+    });
+
+    result = await createAndSubmitPrescriptionUserRestricted({
+      host,
+      token: accessToken,
+      privateKey,
+      bundle: inputBundle,
+      urid: options.urid ?? urid,
+      algorithm: options.algorithm
+    });
+  } else {
+    const apiKey = getEnv("PRESCRIBE_API_KEY");
+    const kid = getEnv("PRESCRIBE_KID");
+
+    result = await createAndSubmitPrescription({
+      host,
+      apiKey,
+      kid,
+      privateKey,
+      bundle: inputBundle,
+      urid: options.urid,
+      algorithm: options.algorithm
+    });
+  }
 
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
@@ -125,6 +134,51 @@ function handleCancel(options: {input: string; saveDir: string}): void {
   console.log(outputPath);
 }
 
+async function handleSign(options: {input: string; urid?: string; algorithm?: string; prepareOnly?: boolean; userRestricted?: boolean; userType?: string}): Promise<void> {
+  const privateKey = loadPrivateKey();
+  const host = getEnv("HOST");
+  const bundle = JSON.parse(readFileSync(options.input, "utf-8"));
+
+  let token: string;
+  let resolvedUrid = options.urid;
+
+  if (options.userRestricted) {
+    const clientId = getEnv("PRESCRIBE_APP_KEY");
+    const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
+    const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
+    const userType = (options.userType ?? "prescriber") as Cis2UserType;
+
+    const authResult = await obtainUserRestrictedAccessToken({
+      host,
+      clientId,
+      clientSecret,
+      redirectUri,
+      userType
+    });
+    token = authResult.accessToken;
+    resolvedUrid = resolvedUrid ?? authResult.urid;
+  } else {
+    const apiKey = getEnv("PRESCRIBE_API_KEY");
+    const kid = getEnv("PRESCRIBE_KID");
+    token = await obtainAccessToken(host, apiKey, kid, privateKey);
+  }
+
+  if (options.prepareOnly) {
+    const {digest, timestamp} = await preparePrescription(host, token, bundle, resolvedUrid);
+    console.log(JSON.stringify({digest, timestamp}, null, 2));
+  } else {
+    const result = await prepareAndSign(
+      host,
+      token,
+      bundle,
+      privateKey,
+      resolvedUrid,
+      options.algorithm
+    );
+    console.log(JSON.stringify(result, null, 2));
+  }
+}
+
 async function main(): Promise<void> {
   config();
 
@@ -132,12 +186,15 @@ async function main(): Promise<void> {
 
   program
     .name("fhir-prescribing")
-    .description("Perform EPS FHIR prescribing actions: create, cancel, and more")
+    .description("Perform EPS FHIR prescribing actions: create, cancel, sign, and more")
     .requiredOption("--action <action>", `Action to perform (${SUPPORTED_ACTIONS.join(" | ")})`)
     .requiredOption("--input <file>", "Input prescription bundle JSON file")
     .option("--save-dir <directory>", "Directory to save output Bundle JSON", "./data/prescriptions")
-    .option("--urid <urid>", "NHSD-Session-URID value (create only)")
-    .option("--algorithm <alg>", "Signing algorithm (create only)", "RSA-SHA1");
+    .option("--urid <urid>", "NHSD-Session-URID value (create/sign)")
+    .option("--algorithm <alg>", "Signing algorithm (create/sign)", "RSA-SHA1")
+    .option("--prepare-only", "Only call $prepare and return the digest without signing (sign only)", false)
+    .option("--user-restricted", "Use user-restricted (CIS2 browser) auth instead of app-restricted", false)
+    .option("--user-type <type>", "CIS2 user type: prescriber or dispenser (user-restricted only)", "prescriber");
 
   program.parse();
   const opts = program.opts<{
@@ -146,6 +203,9 @@ async function main(): Promise<void> {
     saveDir: string;
     urid?: string;
     algorithm?: string;
+    prepareOnly?: boolean;
+    userRestricted?: boolean;
+    userType?: string;
   }>();
 
   const action = parseAction(opts.action.toLowerCase());
@@ -160,6 +220,9 @@ async function main(): Promise<void> {
       break;
     case "cancel":
       handleCancel(opts);
+      break;
+    case "sign":
+      await handleSign(opts);
       break;
     default:
       throw new Error(`Action '${action}' is not yet implemented.`);

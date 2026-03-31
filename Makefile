@@ -1,4 +1,4 @@
-TS_DIR := typescript
+TS_DIR := packages
 
 .PHONY: install build link clean
 

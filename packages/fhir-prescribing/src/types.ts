@@ -1,7 +1,19 @@
 export const SUPPORTED_ACTIONS = [
   "create",
-  "cancel"
+  "cancel",
+  "sign"
 ] as const;
+
+export interface PrepareResult {
+  digest: string;
+  timestamp: string;
+}
+
+export interface SignResult {
+  digest: string;
+  signature: string;
+  timestamp: string;
+}
 
 export type PrescriptionAction = (typeof SUPPORTED_ACTIONS)[number];
 
@@ -34,6 +46,15 @@ export interface CreatePrescriptionFlowOptions {
   host: string;
   apiKey: string;
   kid: string;
+  privateKey: string;
+  bundle: BundleLike;
+  urid?: string;
+  algorithm?: string;
+}
+
+export interface CreatePrescriptionUserRestrictedOptions {
+  host: string;
+  token: string;
   privateKey: string;
   bundle: BundleLike;
   urid?: string;

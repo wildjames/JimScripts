@@ -3,7 +3,11 @@ import {sendFhirRequest} from "./http.js";
 import {preparePrescription} from "./prepare.js";
 import {addProvenanceToBundle} from "./provenance.js";
 import {signDigest} from "./signing.js";
-import type {CreatePrescriptionFlowOptions, CreatePrescriptionResult} from "./types.js";
+import type {
+  CreatePrescriptionFlowOptions,
+  CreatePrescriptionUserRestrictedOptions,
+  CreatePrescriptionResult
+} from "./types.js";
 
 // https://digital.nhs.uk/developer/api-catalogue/eps-fhir-prescribing-api#post-/FHIR/R4/$process-message-prescription-order
 
@@ -13,6 +17,20 @@ export async function createAndSubmitPrescription(
   const {host, apiKey, kid, privateKey, bundle, urid, algorithm} = options;
 
   const token = await obtainAccessToken(host, apiKey, kid, privateKey);
+
+  return submitPrescriptionWithToken({host, token, privateKey, bundle, urid, algorithm});
+}
+
+export async function createAndSubmitPrescriptionUserRestricted(
+  options: CreatePrescriptionUserRestrictedOptions
+): Promise<CreatePrescriptionResult> {
+  return submitPrescriptionWithToken(options);
+}
+
+async function submitPrescriptionWithToken(
+  options: CreatePrescriptionUserRestrictedOptions
+): Promise<CreatePrescriptionResult> {
+  const {host, token, privateKey, bundle, urid, algorithm} = options;
 
   const {digest, timestamp} = await preparePrescription(host, token, bundle, urid);
   const signature = signDigest(digest, privateKey, algorithm);

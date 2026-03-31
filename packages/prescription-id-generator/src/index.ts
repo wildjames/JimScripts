@@ -42,6 +42,7 @@ export function computePrescriptionIdCheckDigit(prescriptionId: string): string 
 /**
  * Generate a prescription order number in the format:
  * [6 alphanumeric]-[ODS]-[5 alphanumeric][check digit]
+ * If the ODS code is shorter than 6 characters, it will be padded with zeros. If it's longer, it will be truncated.
  */
 export function generatePrescriptionId(odsCode?: string): string {
   const core = Array.from({length: 11}, () => randomChoice(ALPHANUM)).join("");

@@ -10,7 +10,6 @@
     "ods-code-generator",
     "pfp-request-sender",
     "prescription-id-generator",
-    "prescription-signer",
     "psu-request-generator",
     "psu-request-sender",
     "psu-request-wizard"
@@ -23,13 +22,13 @@
     "send-pfp-request": "./pfp-request-sender/dist/cli.js",
     "generate-prescription-ids": "./prescription-id-generator/dist/cli.js",
     "generate-psu-request": "./psu-request-generator/dist/cli.js",
-    "sign-prescription": "./prescription-signer/dist/cli.js",
+    "sign-prescription": "./fhir-prescribing/dist/cli.js",
     "send-psu-request": "./psu-request-sender/dist/cli.js",
     "psu-wizard": "./psu-request-wizard/dist/cli.js"
   },
   "scripts": {
     "install-playwright": "npx playwright install",
-    "build": "npm run build --workspace ods-code-generator && npm run build --workspace nhs-number-generator && npm run build --workspace prescription-id-generator && npm run build --workspace create-prescription && npm run build --workspace fhir-prescribing && npm run build --workspace pfp-request-sender && npm run build --workspace prescription-signer && npm run build --workspace psu-request-generator && npm run build --workspace psu-request-sender && npm run build --workspace psu-request-wizard",
+    "build": "npm run build --workspace ods-code-generator && npm run build --workspace nhs-number-generator && npm run build --workspace prescription-id-generator && npm run build --workspace create-prescription && npm run build --workspace fhir-prescribing && npm run build --workspace pfp-request-sender && npm run build --workspace psu-request-generator && npm run build --workspace psu-request-sender && npm run build --workspace psu-request-wizard",
     "clean": "rm -rf */dist */node_modules node_modules"
   }
 }

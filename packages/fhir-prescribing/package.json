@@ -7,7 +7,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "fhir-prescribing": "./dist/cli.js"
+    "fhir-prescribing": "./dist/cli.js",
+    "sign-prescription": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -19,7 +20,8 @@
     "commander": "^12.1.0",
     "create-prescription-bundle": "^0.1.0",
     "dotenv": "^16.4.5",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "playwright": "^1.52.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.6",
