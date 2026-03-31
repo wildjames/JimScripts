@@ -37,14 +37,14 @@ console.log(response.status);
 
 ## Required Environment Variables
 
-- `API_KEY`: APIM application API key
+- `PSU_API_KEY`: APIM application API key
 - `HOST`: e.g. `internal-dev.api.service.nhs.uk`
-- `KID`: key ID from APIM portal
-- `PRIVATE_KEY`: PEM contents of the private key
+- `PSU_KID`: key ID from APIM portal
+- `PSU_PRIVATE_KEY`: PEM contents of the private key
 
 ### Optional Environment Variables
 
-- `PRIVATE_KEY_PATH`: path to PEM file (used when `PRIVATE_KEY` is not set)
+- `PSU_PRIVATE_KEY_PATH`: path to PEM file (used when `PSU_PRIVATE_KEY` is not set)
 - `IS_PR`: set to `true` to send to a PR sandbox URL
 - `PR_NUMBER`: PR number used when `IS_PR` is true
 

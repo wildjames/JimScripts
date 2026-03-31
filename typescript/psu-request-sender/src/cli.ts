@@ -12,10 +12,10 @@ async function main(): Promise<void> {
   const descriptionParts = [
     "Send a Prescription Status Update bundle to the PSU endpoint.",
     "-->> Required environment variables:",
-    "- API_KEY: APIM application API key",
+    "- PSU_API_KEY: APIM application API key",
     "- HOST: e.g. internal-dev.api.service.nhs.uk",
-    "- KID: key ID from APIM portal",
-    "- PRIVATE_KEY: PEM contents of the private key or PRIVATE_KEY_PATH: path to PEM file"
+    "- PSU_KID: key ID from APIM portal",
+    "- PSU_PRIVATE_KEY: PEM contents of the private key or PSU_PRIVATE_KEY_PATH: path to PEM file"
   ];
 
   const program = new Command();
@@ -28,9 +28,9 @@ async function main(): Promise<void> {
   const options = program.opts();
 
   const privateKey = loadPrivateKey();
-  const apiKey = getEnv("API_KEY");
+  const apiKey = getEnv("PSU_API_KEY");
   const host = getEnv("HOST");
-  const kid = getEnv("KID");
+  const kid = getEnv("PSU_KID");
 
   const bundle = loadBundle(options.input);
 

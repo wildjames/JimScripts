@@ -94,8 +94,8 @@ async function sendBundle(bundle: Record<string, unknown>): Promise<void> {
   config();
 
   const host = getEnv("HOST");
-  const apiKey = getEnv("API_KEY");
-  const kid = getEnv("KID");
+  const apiKey = getEnv("PSU_API_KEY");
+  const kid = getEnv("PSU_KID");
   const privateKey = loadPrivateKey();
   const isPr = getEnv("IS_PR").trim().toLowerCase() === "true";
 

@@ -1,13 +1,13 @@
 {
-  "name": "prescription-action",
+  "name": "prescription-signer",
   "version": "0.1.0",
   "author": "Jim Wild <james.wild6@nhs.net",
-  "description": "Create FHIR prescription action bundles from a create-prescription bundle",
+  "description": "Prepare and sign EPS FHIR prescriptions via the $prepare endpoint",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "prescription-action": "./dist/cli.js"
+    "sign-prescription": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -16,9 +16,12 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.19.33",
     "typescript": "^5.5.4"
   }
