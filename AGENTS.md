@@ -21,7 +21,7 @@ npm run build
 npm link
 ```
 
-The PfP Request Sender additionally requires Playwright browsers:
+The PfP Request Sender, and user-restricted mode in FHIR Prescribing, additionally require Playwright browsers:
 ```bash
 make install-playwright
 # or: cd typescript && npx playwright install
@@ -209,7 +209,7 @@ const bundle = createPrescriptionMessageBundle({
 
 ### 5. `fhir-prescribing` — FHIR Prescribing Actions
 
-Performs EPS FHIR prescribing actions on prescription bundles. Supports `create` (prepare, sign, and submit a prescription) and `cancel` (generate a cancellation bundle).
+Performs EPS FHIR prescribing actions on prescription bundles. Supports `create` (prepare, sign, and submit a prescription), `cancel` (generate a cancellation bundle), and `sign` (prepare and optionally sign a prescription digest).
 
 #### CLI
 
@@ -228,22 +228,37 @@ fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescri
 **Options:**
 | Flag | Description | Default |
 |---|---|---|
-| `--action <action>` | Action type: `create`, `cancel`, `claim`, `release`, `dispense` | required |
+| `--action <action>` | Action type: `create`, `cancel`, `sign` | required |
 | `--input <file>` | Path to input prescription bundle JSON | required |
 | `--save-dir <directory>` | Output directory | `./data/prescriptions` |
-| `--urid <urid>` | NHSD-Session-URID value (create only) | optional |
-| `--algorithm <alg>` | Signing algorithm (create only) | `RSA-SHA1` |
+| `--urid <urid>` | NHSD-Session-URID value (create/sign) | optional |
+| `--algorithm <alg>` | Signing algorithm (create/sign) | `RSA-SHA1` |
+| `--prepare-only` | Call `$prepare` and return digest only (sign only) | `false` |
+| `--user-restricted` | Use CIS2 browser login (OAuth2 auth-code) instead of app-restricted JWT | `false` |
+| `--user-type <type>` | CIS2 user type for user-restricted mode: `prescriber` or `dispenser` | `prescriber` |
 
-**Environment variables (required for `create`):**
+**Environment variables (app-restricted mode, required for `create`/`sign`):**
 | Variable | Description | Required |
 |---|---|---|
-| `API_KEY` | APIM application API key | yes |
 | `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
+| `PRESCRIBE_API_KEY` | APIM application API key | yes |
 | `PRESCRIBE_KID` | Key ID from APIM portal | yes |
-| `PRIVATE_KEY` | PEM contents of the private key | one of these |
+| `PRESCRIBE_PRIVATE_KEY` | PEM contents of the private key | one of these |
 | `PRESCRIBE_PRIVATE_KEY_PATH` | Path to PEM file | one of these |
 
-**Supported actions:** `create` and `cancel` are implemented. The others (`claim`, `release`, `dispense`) are parsed but return "not yet supported".
+**Environment variables (user-restricted mode, required for `create`/`sign` with `--user-restricted`):**
+| Variable | Description | Required |
+|---|---|---|
+| `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
+| `PRESCRIBE_APP_KEY` | OAuth client ID for EPS FHIR Prescribing user-restricted auth | yes |
+| `PRESCRIBE_APP_CLIENT_SECRET` | OAuth client secret for EPS FHIR Prescribing user-restricted auth | yes |
+| `PRESCRIBE_CALLBACK_URL` | OAuth callback URL registered for the app (e.g. `https://google.com`) | yes |
+| `PRESCRIBE_PRIVATE_KEY` | PEM contents of the private key used to sign the digest | one of these |
+| `PRESCRIBE_PRIVATE_KEY_PATH` | Path to PEM file used to sign the digest | one of these |
+| `HEADLESS` | Set `false` to show browser during login | optional |
+| `FIREFOX_TMP_DIR` | Browser profile directory for Playwright | optional |
+
+**Supported actions:** `create`, `cancel`, and `sign` are implemented.
 
 **What `create` does:**
 1. Authenticates with the APIM OAuth2 token endpoint using JWT client credentials
@@ -289,7 +304,7 @@ const cancellationBundle = createPrescriptionActionBundle({
 
 ### 6. `sign-prescription` — Prescription Signer
 
-Sends a FHIR prescription bundle to the `$prepare` endpoint to obtain the signing digest, then signs it using a private key.
+Sends a FHIR prescription bundle to the `$prepare` endpoint to obtain the signing digest, then signs it using a private key. Supports both app-restricted JWT auth and user-restricted CIS2 browser auth via `--user-restricted`.
 
 #### CLI
 
@@ -307,15 +322,29 @@ sign-prescription --input ./bundle.json --algorithm RSA-SHA256
 | `--urid <urid>` | NHSD-Session-URID value | optional |
 | `--algorithm <alg>` | Signing algorithm | `RSA-SHA1` |
 | `--prepare-only` | Only call `$prepare` and return the digest without signing | `false` |
+| `--user-restricted` | Use CIS2 browser login (OAuth2 auth-code) instead of app-restricted JWT | `false` |
+| `--user-type <type>` | CIS2 user type for user-restricted mode: `prescriber` or `dispenser` | `prescriber` |
 
-**Environment variables:**
+**Environment variables (app-restricted mode):**
 | Variable | Description | Required |
 |---|---|---|
-| `API_KEY` | APIM application API key | yes |
 | `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
+| `PRESCRIBE_API_KEY` | APIM application API key | yes |
 | `PRESCRIBE_KID` | Key ID from APIM portal | yes |
-| `PRIVATE_KEY` | PEM contents of the private key | one of these |
+| `PRESCRIBE_PRIVATE_KEY` | PEM contents of the private key | one of these |
 | `PRESCRIBE_PRIVATE_KEY_PATH` | Path to PEM file | one of these |
+
+**Environment variables (user-restricted mode):**
+| Variable | Description | Required |
+|---|---|---|
+| `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
+| `PRESCRIBE_APP_KEY` | OAuth client ID for EPS FHIR Prescribing user-restricted auth | yes |
+| `PRESCRIBE_APP_CLIENT_SECRET` | OAuth client secret for EPS FHIR Prescribing user-restricted auth | yes |
+| `PRESCRIBE_CALLBACK_URL` | OAuth callback URL registered for the app (e.g. `https://google.com`) | yes |
+| `PRESCRIBE_PRIVATE_KEY` | PEM contents of the private key used to sign the digest | one of these |
+| `PRESCRIBE_PRIVATE_KEY_PATH` | Path to PEM file used to sign the digest | one of these |
+| `HEADLESS` | Set `false` to show browser during login | optional |
+| `FIREFOX_TMP_DIR` | Browser profile directory for Playwright | optional |
 
 **Output (JSON to stdout):**
 ```json
@@ -592,8 +621,15 @@ generate-prescription-ids -n 3
 
 | Variable | Used By | Description |
 |---|---|---|
+| `PRESCRIBE_API_KEY` | `fhir-prescribing`, `sign-prescription` | APIM application API key (app-restricted mode) |
+| `PRESCRIBE_KID` | `fhir-prescribing`, `sign-prescription` | Key ID from APIM portal (app-restricted mode) |
+| `PRESCRIBE_PRIVATE_KEY` | `fhir-prescribing`, `sign-prescription` | PEM private key contents for digest signing |
+| `PRESCRIBE_PRIVATE_KEY_PATH` | `fhir-prescribing`, `sign-prescription` | Path to PEM private key file for digest signing |
+| `PRESCRIBE_APP_KEY` | `fhir-prescribing`, `sign-prescription` | OAuth client ID (user-restricted mode) |
+| `PRESCRIBE_APP_CLIENT_SECRET` | `fhir-prescribing`, `sign-prescription` | OAuth client secret (user-restricted mode) |
+| `PRESCRIBE_CALLBACK_URL` | `fhir-prescribing`, `sign-prescription` | OAuth callback URL (user-restricted mode) |
 | `API_KEY` | `send-psu-request`, `make-psu-request` | APIM application API key |
-| `HOST` | `send-psu-request`, `send-pfp-request`, `make-psu-request` | API host (e.g. `internal-dev.api.service.nhs.uk`) |
+| `HOST` | `fhir-prescribing`, `sign-prescription`, `send-psu-request`, `send-pfp-request`, `make-psu-request` | API host (e.g. `internal-dev.api.service.nhs.uk`) |
 | `PSU_KID` | `send-psu-request`, `make-psu-request` | Key ID from APIM portal |
 | `PRIVATE_KEY` | `send-psu-request`, `make-psu-request` | PEM private key contents |
 | `PSU_PRIVATE_KEY_PATH` | `send-psu-request`, `make-psu-request` | Path to PEM private key file |
@@ -601,8 +637,8 @@ generate-prescription-ids -n 3
 | `PFP_CLIENT_SECRET` | `send-pfp-request`, `make-psu-request` | OAuth client secret for PfP |
 | `REDIRECT_URI` | `send-pfp-request` | OAuth redirect URI |
 | `AUTH_USERNAME` | `send-pfp-request` | Mock NHS login username |
-| `FIREFOX_TMP_DIR` | `send-pfp-request` | Browser profile directory |
-| `HEADLESS` | `send-pfp-request` | Show/hide browser (`true`/`false`) |
+| `FIREFOX_TMP_DIR` | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request` | Browser profile directory |
+| `HEADLESS` | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request` | Show/hide browser (`true`/`false`) |
 | `IS_PR` | `send-psu-request` | Target PR sandbox URL |
 | `PR_NUMBER` | `send-psu-request` | PR number for sandbox URL |
 
