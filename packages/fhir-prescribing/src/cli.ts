@@ -6,7 +6,7 @@ import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
 import {join} from "path";
 
 import {
-  createAndSubmitPrescription,
+  submitPrescriptionWithToken,
   createAndSubmitCancellation,
   preparePrescription,
   prepareAndSign,
@@ -89,7 +89,7 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
     userType
   });
 
-  result = await createAndSubmitPrescription({
+  result = await submitPrescriptionWithToken({
     host,
     token: accessToken,
     privateKey,

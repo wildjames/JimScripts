@@ -21,7 +21,7 @@ export {addProvenanceToBundle} from "./provenance.js";
 
 export {createCancellationBundle, createAndSubmitCancellation, type CancellationOptions} from "./cancel.js";
 
-export {createAndSubmitPrescription} from "./create.js";
+export {submitPrescriptionWithToken} from "./create.js";
 
 export {
   obtainUserRestrictedAccessToken,

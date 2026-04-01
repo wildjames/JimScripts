@@ -10,13 +10,7 @@ import type {
 
 // https://digital.nhs.uk/developer/api-catalogue/eps-fhir-prescribing-api#post-/FHIR/R4/$process-message-prescription-order
 
-export async function createAndSubmitPrescription(
-  options: CreatePrescriptionUserRestrictedOptions
-): Promise<CreatePrescriptionResult> {
-  return submitPrescriptionWithToken(options);
-}
-
-async function submitPrescriptionWithToken(
+export async function submitPrescriptionWithToken(
   options: CreatePrescriptionUserRestrictedOptions
 ): Promise<CreatePrescriptionResult> {
   const {host, token, privateKey, bundle, urid, algorithm} = options;

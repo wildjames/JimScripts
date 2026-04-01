@@ -19,8 +19,9 @@ Use this skill to handle requests in the EPS tools monorepo that involve:
 
 - Workspace root contains `packages/` with one CLI package per tool.
 - Canonical package docs live in `AGENTS.md` and each package `README.md`.
+- The workspace root `package.json` exposes linked convenience commands
 - Generated data is typically written under `data/prescriptions/` and `data/psu_requests/`.
-- Configuration is done with a `.env` file that is loaded by the CLI tools automatically.
+- Configuration is done with a `.env` file that is loaded by the CLI tools automatically. You do not need to check for things being set correctly - just assume they are until errors say otherwise.
 
 ## Setup Commands
 
@@ -64,10 +65,22 @@ generate-prescription-ids -n 3
 create-prescription-bundle --nhs-number 9998481732 --count 2
 ```
 
+Expected output pattern:
+
+```bash
+./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+```
+
 ### Create and submit a prescription
 
 ```bash
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>.json
+```
+
+Expected output pattern:
+
+```bash
+./data/prescriptions/create-bundle_<timestamp>_nhs-num-<number>.json
 ```
 
 ### Cancel an existing prescription bundle
@@ -76,11 +89,27 @@ fhir-prescribing --action create --input ./data/prescriptions/prescription-bundl
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>.json
 ```
 
+This action generates a cancellation bundle and submits it to EPS.
+
+Expected output pattern:
+
+```bash
+./data/prescriptions/cancel-bundle_<timestamp>_nhs-num-<number>.json
+```
+
 ### Sign only
 
 ```bash
 sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>.json
 sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>.json --prepare-only
+```
+
+### End-to-end create, submit, and cancel
+
+```bash
+create-prescription-bundle --count 1
+fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
 ```
 
 ### Generate and send PSU
@@ -110,12 +139,15 @@ Before running auth-dependent commands, verify required variables:
 
 1. Prefer package README details if behavior in `AGENTS.md` and implementation differ.
 2. For commands that write files, state expected output path and filename pattern.
-3. For failures, capture:
+3. When working from the repo root, prefer the root-linked CLI names that are actually available on `PATH`, even if package docs use a package-local command name.
+4. For `fhir-prescribing --action create` and `--action cancel`, report both the HTTP response status and the saved output bundle path.
+5. `cancel` is a generate-and-submit workflow in current docs and implementation, not just a local transform.
+6. For failures, capture:
    - command run
    - key env var presence (not secret values)
    - HTTP status and response body when available
-4. Never print private key contents in logs or chat responses.
-5. Keep examples consistent with valid business statuses:
+7. Never print private key contents in logs or chat responses.
+8. Keep examples consistent with valid business statuses:
    - `With Pharmacy`
    - `Ready to Collect`
    - `Ready to Dispatch`

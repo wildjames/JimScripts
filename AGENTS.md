@@ -4,7 +4,7 @@ This document describes the complete set of CLI tools and programmatic APIs avai
 
 ## Repository Structure
 
-This is an npm workspace monorepo rooted at `typescript/`. All tools are TypeScript packages that compile to JavaScript CLIs.
+This is an npm workspace monorepo with packages under `packages/`. All tools are TypeScript packages that compile to JavaScript CLIs.
 
 ### Setup
 
@@ -22,6 +22,7 @@ npm link
 ```
 
 The PfP Request Sender, and user-restricted mode in FHIR Prescribing, additionally require Playwright browsers:
+
 ```bash
 make install-playwright
 # or: cd typescript && npx playwright install
@@ -31,18 +32,18 @@ make install-playwright
 
 ## Tool Inventory
 
-| CLI Command | Package | Purpose |
-|---|---|---|
-| `generate-nhs-numbers` | `nhs-number-generator` | Generate/validate NHS numbers |
-| `generate-ods-codes` | `ods-code-generator` | Generate ODS organisation codes |
-| `generate-prescription-ids` | `prescription-id-generator` | Generate prescription order numbers |
-| `create-prescription-bundle` | `create-prescription` | Create FHIR prescription message bundles |
-| `fhir-prescribing` | `fhir-prescribing` | Create, cancel, prepare, sign, and submit prescriptions |
-| `sign-prescription` | `prescription-signer` | Prepare and sign FHIR prescriptions via the $prepare endpoint |
-| `generate-psu-request` | `psu-request-generator` | Generate PSU (Prescription Status Update) FHIR bundles |
-| `send-psu-request` | `psu-request-sender` | Send PSU bundles to the PSU API endpoint |
-| `send-pfp-request` | `pfp-request-sender` | Fetch Prescriptions-for-Patients bundles via OAuth2 |
-| `make-psu-request` | `psu-request-wizard` | Interactive wizard combining PfP fetch and PSU generation/sending |
+| CLI Command                       | Package                     | Purpose                                                           |
+| --------------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `generate-nhs-numbers`            | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
+| `generate-ods-codes`              | `ods-code-generator`        | Generate ODS organisation codes                                   |
+| `generate-prescription-ids`       | `prescription-id-generator` | Generate prescription order numbers                               |
+| `fhir-create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
+| `fhir-prescribing`                | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
+| `sign-prescription`               | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
+| `generate-psu-request`            | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
+| `send-psu-request`                | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
+| `send-pfp-request`                | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
+| `make-psu-request`                | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
 
 ---
 
@@ -79,14 +80,14 @@ import {
   generateNhsNumbers,
   completeNhsNumber,
   validateNhsNumber,
-  calculateCheckDigit
-} from 'nhs-number-generator';
+  calculateCheckDigit,
+} from "nhs-number-generator";
 
-generateNhsNumber();                  // → "9991234560"
-generateNhsNumbers(5);               // → string[]
-completeNhsNumber('999123456');       // → "9991234560"
-validateNhsNumber('9991234560');      // → true | false
-calculateCheckDigit('999123456');     // → number
+generateNhsNumber(); // → "9991234560"
+generateNhsNumbers(5); // → string[]
+completeNhsNumber("999123456"); // → "9991234560"
+validateNhsNumber("9991234560"); // → true | false
+calculateCheckDigit("999123456"); // → number
 ```
 
 ---
@@ -120,10 +121,10 @@ generate-ods-codes -n 3 -l 4     # Three 4-character codes
 #### Programmatic API
 
 ```typescript
-import { generateOdsCode, generateOdsCodes } from 'ods-code-generator';
+import { generateOdsCode, generateOdsCodes } from "ods-code-generator";
 
-generateOdsCode();       // → "A12345" (6-char default)
-generateOdsCode(5);      // → "FA565"
+generateOdsCode(); // → "A12345" (6-char default)
+generateOdsCode(5); // → "FA565"
 generateOdsCodes(10, 6); // → string[] of length 10
 ```
 
@@ -156,27 +157,27 @@ import {
   generatePrescriptionId,
   generatePrescriptionIds,
   computePrescriptionIdCheckDigit,
-  generateOdsCode
-} from 'prescription-id-generator';
+  generateOdsCode,
+} from "prescription-id-generator";
 
-generatePrescriptionId();           // → "ABC123-A12345-DEF45X"
-generatePrescriptionIds(5);         // → string[]
-computePrescriptionIdCheckDigit('ABC123-A12345-DEF45'); // → check digit char
+generatePrescriptionId(); // → "ABC123-A12345-DEF45X"
+generatePrescriptionIds(5); // → string[]
+computePrescriptionIdCheckDigit("ABC123-A12345-DEF45"); // → check digit char
 ```
 
 ---
 
-### 4. `create-prescription-bundle` — Prescription Bundle Creator
+### 4. `fhir-create-prescription-bundle` — Prescription Bundle Creator
 
 Generates complete FHIR prescription message bundles containing MessageHeader, MedicationRequest(s), Patient, PractitionerRole, Practitioner, and Organization resources.
 
 #### CLI
 
 ```bash
-create-prescription-bundle                                # Single prescription, all auto-generated
-create-prescription-bundle --count 3 --nhs-number 9998481732  # 3 medication requests for a specific patient
-create-prescription-bundle --pharmacy-ods FA565 --practitioner-ods A83008 --count 2
-create-prescription-bundle --save-dir /tmp/my-prescriptions
+fhir-create-prescription-bundle                                # Single prescription, all auto-generated
+fhir-create-prescription-bundle --count 3 --nhs-number 9998481732  # 3 medication requests for a specific patient
+fhir-create-prescription-bundle --pharmacy-ods FA565 --practitioner-ods A83008 --count 2
+fhir-create-prescription-bundle --save-dir /tmp/my-prescriptions
 ```
 
 **Options:**
@@ -193,13 +194,13 @@ create-prescription-bundle --save-dir /tmp/my-prescriptions
 #### Programmatic API
 
 ```typescript
-import { createPrescriptionMessageBundle } from 'prescription-bundle-creator';
+import { createPrescriptionMessageBundle } from "prescription-bundle-creator";
 
 const bundle = createPrescriptionMessageBundle({
-  nhsNumber: '9998481732',
+  nhsNumber: "9998481732",
   count: 2,
-  pharmacyOds: 'FA565',
-  practitionerOds: 'A83008'
+  pharmacyOds: "FA565",
+  practitionerOds: "A83008",
 });
 ```
 
@@ -261,6 +262,7 @@ fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescri
 **Supported actions:** `create`, `cancel`, and `sign` are implemented.
 
 **What `create` does:**
+
 1. Authenticates with the APIM OAuth2 token endpoint using JWT client credentials
 2. Sends the FHIR prescription Bundle to `POST /fhir-prescribing/FHIR/R4/$prepare`
 3. Extracts the digest from the `Parameters` response
@@ -269,6 +271,7 @@ fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescri
 6. Submits the signed bundle to `POST /fhir-prescribing/FHIR/R4/$process-message`
 
 **What `cancel` does to the bundle:**
+
 - Generates a new Bundle `identifier.value` UUID
 - Changes `MessageHeader.eventCoding` to `prescription-order-update`
 - Clears `MessageHeader.focus`
@@ -283,20 +286,23 @@ import {
   createPrescriptionActionBundle,
   obtainAccessToken,
   preparePrescription,
-  signDigest
-} from 'fhir-prescribing';
+  signDigest,
+} from "fhir-prescribing";
 
 // Create: full flow - prepare, sign, submit
 const result = await createAndSubmitPrescription({
-  host, apiKey, kid, privateKey,
-  bundle: prescriptionBundle
+  host,
+  apiKey,
+  kid,
+  privateKey,
+  bundle: prescriptionBundle,
 });
 console.log(result.response.status, result.digest, result.signature);
 
 // Cancel: synchronous bundle transformation
 const cancellationBundle = createPrescriptionActionBundle({
-  action: 'cancel',
-  inputBundle: existingBundleJson
+  action: "cancel",
+  inputBundle: existingBundleJson,
 });
 ```
 
@@ -347,6 +353,7 @@ sign-prescription --input ./bundle.json --algorithm RSA-SHA256
 | `FIREFOX_TMP_DIR` | Browser profile directory for Playwright | optional |
 
 **Output (JSON to stdout):**
+
 ```json
 {
   "digest": "PFNpZ25lZEluZm8g...",
@@ -364,18 +371,21 @@ import {
   obtainAccessToken,
   preparePrescription,
   signDigest,
-  prepareAndSign
-} from 'prescription-signer';
+  prepareAndSign,
+} from "prescription-signer";
 
 // Full flow
 const token = await obtainAccessToken(host, apiKey, kid, privateKey);
-const {digest, signature, timestamp} = await prepareAndSign(
-  host, token, bundle, privateKey
+const { digest, signature, timestamp } = await prepareAndSign(
+  host,
+  token,
+  bundle,
+  privateKey,
 );
 
 // Step by step
-const {digest} = await preparePrescription(host, token, bundle, urid);
-const signature = signDigest(digest, privateKey, 'RSA-SHA1');
+const { digest } = await preparePrescription(host, token, bundle, urid);
+const signature = signDigest(digest, privateKey, "RSA-SHA1");
 ```
 
 ---
@@ -409,6 +419,7 @@ generate-psu-request --business-status "With Pharmacy" | jq '.entry[0].resource'
 | `-o, --output <file>` | Output file path | STDOUT |
 
 **Valid business statuses:**
+
 - `With Pharmacy`
 - `Ready to Collect`
 - `Ready to Dispatch`
@@ -419,12 +430,12 @@ generate-psu-request --business-status "With Pharmacy" | jq '.entry[0].resource'
 #### Programmatic API
 
 ```typescript
-import { generateCreatePrescriptionBundle } from 'psu-request-generator';
+import { generateCreatePrescriptionBundle } from "psu-request-generator";
 
 const bundle = generateCreatePrescriptionBundle({
-  businessStatus: 'With Pharmacy',
-  nhsNumber: '9998481732',
-  numEntries: 1
+  businessStatus: "With Pharmacy",
+  nhsNumber: "9998481732",
+  numEntries: 1,
 });
 ```
 
@@ -463,7 +474,7 @@ send-psu-request --input ./bundle.json
 #### Programmatic API
 
 ```typescript
-import { obtainAccessToken, sendPsu } from 'psu-request-sender';
+import { obtainAccessToken, sendPsu } from "psu-request-sender";
 
 const token = await obtainAccessToken(host, apiKey, kid, privateKey);
 const { response } = await sendPsu(host, token, bundle);
@@ -508,10 +519,16 @@ send-pfp-request 9998481732 --save-dir ./data/psu_requests
 #### Programmatic API
 
 ```typescript
-import { fetchBundle, getPfpEnv } from 'pfp-request-sender';
+import { fetchBundle, getPfpEnv } from "pfp-request-sender";
 
 const { host, clientId, clientSecret, redirectUri } = getPfpEnv();
-const bundle = await fetchBundle(host, clientId, clientSecret, redirectUri, '9998481732');
+const bundle = await fetchBundle(
+  host,
+  clientId,
+  clientSecret,
+  redirectUri,
+  "9998481732",
+);
 ```
 
 ---
@@ -521,19 +538,25 @@ const bundle = await fetchBundle(host, clientId, clientSecret, redirectUri, '999
 Interactive wizard that combines PfP fetching, PSU bundle generation, and optional sending. Three modes of operation:
 
 #### Mode 1: Synthetic Wizard
+
 Build PSU bundles with fully synthetic data interactively:
+
 ```bash
 make-psu-request --wizard --nhs-number 9991234567
 ```
 
 #### Mode 2: From PfP File
+
 Build PSU bundles from a previously saved PfP response file:
+
 ```bash
 make-psu-request --input ./data/pfp_responses/example.json
 ```
 
 #### Mode 3: Live PfP Fetch
+
 Fetch PfP by NHS number, then interactively select medication requests to build PSU entries:
+
 ```bash
 make-psu-request --nhs-number 9991234567
 make-psu-request --nhs-number 9991234567 --send   # Also send the result
@@ -553,6 +576,7 @@ make-psu-request --nhs-number 9991234567 --send   # Also send the result
 | `-c, --clipboard` | Copy to clipboard (not yet implemented) | false |
 
 **Notes:**
+
 - All generated bundles are auto-saved with a `psu-request` prefix before final output/send.
 - In PfP-based interactive mode, entering an invalid medication selection exits the selection loop.
 - Business status selection accepts menu numbers or case-insensitive exact text.
@@ -560,15 +584,15 @@ make-psu-request --nhs-number 9991234567 --send   # Also send the result
 #### Programmatic API
 
 ```typescript
-import { runWizard } from 'psu-request-wizard';
+import { runWizard } from "psu-request-wizard";
 
 await runWizard({
   wizard: true,
-  nhsNumber: '9991234567',
-  businessStatus: 'With Pharmacy',
+  nhsNumber: "9991234567",
+  businessStatus: "With Pharmacy",
   clipboard: false,
   send: false,
-  saveDir: './data/psu_requests'
+  saveDir: "./data/psu_requests",
 });
 ```
 
@@ -580,7 +604,7 @@ await runWizard({
 
 ```bash
 # Step 1: Create a prescription bundle
-create-prescription-bundle --nhs-number 9998481732 --count 2
+fhir-create-prescription-bundle --nhs-number 9998481732 --count 2
 
 # Step 2: Cancel it (use the output file from step 1)
 prescription-action --action cancel \
@@ -619,38 +643,38 @@ generate-prescription-ids -n 3
 
 ## Environment Variable Summary
 
-| Variable | Used By | Description |
-|---|---|---|
-| `PRESCRIBE_API_KEY` | `fhir-prescribing`, `sign-prescription` | APIM application API key (app-restricted mode) |
-| `PRESCRIBE_KID` | `fhir-prescribing`, `sign-prescription` | Key ID from APIM portal (app-restricted mode) |
-| `PRESCRIBE_PRIVATE_KEY` | `fhir-prescribing`, `sign-prescription` | PEM private key contents for digest signing |
-| `PRESCRIBE_PRIVATE_KEY_PATH` | `fhir-prescribing`, `sign-prescription` | Path to PEM private key file for digest signing |
-| `PRESCRIBE_APP_KEY` | `fhir-prescribing`, `sign-prescription` | OAuth client ID (user-restricted mode) |
-| `PRESCRIBE_APP_CLIENT_SECRET` | `fhir-prescribing`, `sign-prescription` | OAuth client secret (user-restricted mode) |
-| `PRESCRIBE_CALLBACK_URL` | `fhir-prescribing`, `sign-prescription` | OAuth callback URL (user-restricted mode) |
-| `API_KEY` | `send-psu-request`, `make-psu-request` | APIM application API key |
-| `HOST` | `fhir-prescribing`, `sign-prescription`, `send-psu-request`, `send-pfp-request`, `make-psu-request` | API host (e.g. `internal-dev.api.service.nhs.uk`) |
-| `PSU_KID` | `send-psu-request`, `make-psu-request` | Key ID from APIM portal |
-| `PRIVATE_KEY` | `send-psu-request`, `make-psu-request` | PEM private key contents |
-| `PSU_PRIVATE_KEY_PATH` | `send-psu-request`, `make-psu-request` | Path to PEM private key file |
-| `PFP_API_KEY` | `send-pfp-request`, `make-psu-request` | OAuth client ID for PfP |
-| `PFP_CLIENT_SECRET` | `send-pfp-request`, `make-psu-request` | OAuth client secret for PfP |
-| `REDIRECT_URI` | `send-pfp-request` | OAuth redirect URI |
-| `AUTH_USERNAME` | `send-pfp-request` | Mock NHS login username |
-| `FIREFOX_TMP_DIR` | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request` | Browser profile directory |
-| `HEADLESS` | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request` | Show/hide browser (`true`/`false`) |
-| `IS_PR` | `send-psu-request` | Target PR sandbox URL |
-| `PR_NUMBER` | `send-psu-request` | PR number for sandbox URL |
+| Variable                      | Used By                                                                                             | Description                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `PRESCRIBE_API_KEY`           | `fhir-prescribing`, `sign-prescription`                                                             | APIM application API key (app-restricted mode)    |
+| `PRESCRIBE_KID`               | `fhir-prescribing`, `sign-prescription`                                                             | Key ID from APIM portal (app-restricted mode)     |
+| `PRESCRIBE_PRIVATE_KEY`       | `fhir-prescribing`, `sign-prescription`                                                             | PEM private key contents for digest signing       |
+| `PRESCRIBE_PRIVATE_KEY_PATH`  | `fhir-prescribing`, `sign-prescription`                                                             | Path to PEM private key file for digest signing   |
+| `PRESCRIBE_APP_KEY`           | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client ID (user-restricted mode)            |
+| `PRESCRIBE_APP_CLIENT_SECRET` | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client secret (user-restricted mode)        |
+| `PRESCRIBE_CALLBACK_URL`      | `fhir-prescribing`, `sign-prescription`                                                             | OAuth callback URL (user-restricted mode)         |
+| `API_KEY`                     | `send-psu-request`, `make-psu-request`                                                              | APIM application API key                          |
+| `HOST`                        | `fhir-prescribing`, `sign-prescription`, `send-psu-request`, `send-pfp-request`, `make-psu-request` | API host (e.g. `internal-dev.api.service.nhs.uk`) |
+| `PSU_KID`                     | `send-psu-request`, `make-psu-request`                                                              | Key ID from APIM portal                           |
+| `PRIVATE_KEY`                 | `send-psu-request`, `make-psu-request`                                                              | PEM private key contents                          |
+| `PSU_PRIVATE_KEY_PATH`        | `send-psu-request`, `make-psu-request`                                                              | Path to PEM private key file                      |
+| `PFP_API_KEY`                 | `send-pfp-request`, `make-psu-request`                                                              | OAuth client ID for PfP                           |
+| `PFP_CLIENT_SECRET`           | `send-pfp-request`, `make-psu-request`                                                              | OAuth client secret for PfP                       |
+| `REDIRECT_URI`                | `send-pfp-request`                                                                                  | OAuth redirect URI                                |
+| `AUTH_USERNAME`               | `send-pfp-request`                                                                                  | Mock NHS login username                           |
+| `FIREFOX_TMP_DIR`             | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request`     | Browser profile directory                         |
+| `HEADLESS`                    | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request`     | Show/hide browser (`true`/`false`)                |
+| `IS_PR`                       | `send-psu-request`                                                                                  | Target PR sandbox URL                             |
+| `PR_NUMBER`                   | `send-psu-request`                                                                                  | PR number for sandbox URL                         |
 
 ---
 
 ## Data Directories
 
-| Path | Contents |
-|---|---|
+| Path                    | Contents                                            |
+| ----------------------- | --------------------------------------------------- |
 | `./data/prescriptions/` | Saved prescription bundles and cancellation bundles |
-| `./data/psu_requests/` | Saved PSU request bundles and PfP responses |
-| `./data/keys/` | JWKS key pairs for app-restricted authentication |
+| `./data/psu_requests/`  | Saved PSU request bundles and PfP responses         |
+| `./data/keys/`          | JWKS key pairs for app-restricted authentication    |
 
 ---
 

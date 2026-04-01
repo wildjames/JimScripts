@@ -1,30 +1,194 @@
-# Jim's scripts
+# EPS TypeScript Tools
 
-I've made a few helper scripts for doing EPS test stuff.
+Utilities for NHS EPS testing and message generation, including:
 
-Most frequently useful is the NHS number generator, but I also have scripts in here for building and sending PSU update bodies based on a PfP response for a patient. More will be added as I need it.
+- NHS number, ODS code, and prescription ID generation
+- FHIR prescription bundle generation, signing, submission, and cancellation
+- PSU generation and submission
+- PfP retrieval and PfP-to-PSU interactive workflows
 
-## TypeScript monorepo
+This repository is an npm workspace monorepo with one TypeScript package per tool. All cli tools have a `-h` option to print their usage.
 
-The tools in `typescript/` now run as an npm workspace monorepo.
+## Setup
 
-- Install all TypeScript package dependencies once: `make install`
-- Build every TypeScript package in dependency order: `make build`
-- Link all CLI commands globally from a single place: `make link`
+From the repository root:
 
-The `link` target links `typescript/package.json`, which exposes all tool binaries centrally:
+```bash
+make install
+make build
+make link
+```
 
-- `create-prescription-bundle`
+For PfP and user-restricted browser login flows, install Playwright browsers:
+
+```bash
+make install-playwright
+# or: cd packages && npx playwright install
+```
+
+## Available CLI Commands
+
 - `generate-nhs-numbers`
 - `generate-ods-codes`
 - `generate-prescription-ids`
+- `create-prescription-bundle`
+- `fhir-prescribing`
+- `sign-prescription`
 - `generate-psu-request`
 - `send-psu-request`
 - `send-pfp-request`
-- `prescription-action`
-- `psu-wizard`
+- `make-psu-request`
 
+## Quick Start: create, update, cancel
 
-# TODO:
+This is an example end-to-end flow for a single test prescription:
 
-This has an example of creating and signing a prescription with the FHIR facade in dev: [here](https://github.com/NHSDigital/electronic-prescription-service-api/blob/master/packages/e2e-tests/services/update-prescriptions.ts) - implement it. It only works in dev though, since it relies on signing using a certificate, and higher environments require use of a smartcard
+1. Generate a prescription bundle
+2. Create the prescription in the FHIR facade, with the `fhir-prescribing` tool
+3. Send a PSU update with business status `With Pharmacy`
+4. Cancel the prescription with the FHIR facade
+
+Notes:
+
+- PSU updates represent status and can be submitted whether or not the prescription was previously created on the server.
+- This flow still performs create first, then PSU, then cancel.
+
+```bash
+# 1) Generate one prescription bundle
+create-prescription-bundle --count 1
+
+# Resolve the newest generated bundle file
+BUNDLE_FILE="$(ls -1t data/prescriptions/prescription-bundle_* | head -n 1)"
+
+# 2) Create (prepare, sign, submit)
+fhir-prescribing --action create --input "$BUNDLE_FILE"
+
+# Extract NHS number from filename pattern: ..._nhs-num-<nhs>.json
+NHS_NUMBER="$(basename "$BUNDLE_FILE" | sed -E 's/.*_nhs-num-([0-9]{10})\.json/\1/')"
+
+# 3) Generate and submit PSU update: With Pharmacy
+generate-psu-request --business-status "With Pharmacy" --nhs-number "$NHS_NUMBER" -o /tmp/psu-with-pharmacy.json
+send-psu-request --input /tmp/psu-with-pharmacy.json
+
+# 4) Cancel the original prescription bundle
+fhir-prescribing --action cancel --input "$BUNDLE_FILE"
+```
+
+## Quick start: Tool usage
+
+### 1) Generate test identifiers
+
+```bash
+generate-nhs-numbers -n 10
+generate-ods-codes -n 5
+generate-prescription-ids -n 3
+```
+
+### 2) Create a prescription bundle
+
+```bash
+create-prescription-bundle --nhs-number 9998481732 --count 2
+```
+
+Output file pattern:
+
+```text
+./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+```
+
+### 3) Create (prepare, sign, submit) a prescription
+
+```bash
+fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+```
+
+Output file pattern:
+
+```text
+./data/prescriptions/create-bundle_<timestamp>_nhs-num-<number>.json
+```
+
+### 4) Cancel an existing prescription
+
+```bash
+fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+```
+
+Output file pattern:
+
+```text
+./data/prescriptions/cancel-bundle_<timestamp>_nhs-num-<number>.json
+```
+
+### 5) Prepare/sign only
+
+```bash
+sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json --prepare-only
+```
+
+### 6) Generate and send a PSU request
+
+```bash
+generate-psu-request --business-status "With Pharmacy" -o psu.json
+send-psu-request --input psu.json
+```
+
+### 7) PfP to PSU interactive workflow
+
+```bash
+make-psu-request --nhs-number 9991234567 --send
+```
+
+## Environment Variables
+
+### Shared
+
+- `HOST`
+
+### fhir-prescribing and sign-prescription (app-restricted)
+
+- `PRESCRIBE_API_KEY`
+- `PRESCRIBE_KID`
+- one of:
+  - `PRESCRIBE_PRIVATE_KEY`
+  - `PRESCRIBE_PRIVATE_KEY_PATH`
+
+### fhir-prescribing and sign-prescription (user-restricted)
+
+- `PRESCRIBE_APP_KEY`
+- `PRESCRIBE_APP_CLIENT_SECRET`
+- `PRESCRIBE_CALLBACK_URL`
+- one of:
+  - `PRESCRIBE_PRIVATE_KEY`
+  - `PRESCRIBE_PRIVATE_KEY_PATH`
+- optional:
+  - `HEADLESS`
+  - `FIREFOX_TMP_DIR`
+
+### send-psu-request and make-psu-request
+
+- `API_KEY`
+- `PSU_KID`
+- one of:
+  - `PRIVATE_KEY`
+  - `PSU_PRIVATE_KEY_PATH`
+- optional:
+  - `IS_PR`
+  - `PR_NUMBER`
+
+### send-pfp-request and make-psu-request
+
+- `PFP_API_KEY`
+- `PFP_CLIENT_SECRET`
+- optional:
+  - `REDIRECT_URI`
+  - `AUTH_USERNAME`
+  - `HEADLESS`
+  - `FIREFOX_TMP_DIR`
+
+## Default Data Directories
+
+- `./data/prescriptions`: prescription bundles and cancellation bundles
+- `./data/psu_requests`: PSU requests and PfP responses
+- `./data/keys`: JWKS key material

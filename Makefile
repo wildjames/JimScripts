@@ -1,18 +1,16 @@
-TS_DIR := packages
-
 .PHONY: install build link clean
 
 install-playwright:
-	cd $(TS_DIR) && npm run install-playwright
+	npm run install-playwright
 
 install:
-	cd $(TS_DIR) && npm install
+	npm install
 
 build: install
-	cd $(TS_DIR) && npm run build
+	npm run build
 
 link: build
-	cd $(TS_DIR) && npm link
+	npm link
 
 clean:
-	cd $(TS_DIR) && npm run clean
+	npm run clean
