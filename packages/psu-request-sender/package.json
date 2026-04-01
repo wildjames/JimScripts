@@ -18,10 +18,9 @@
   "dependencies": {
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
-    "jsonwebtoken": "^9.0.2"
+    "eps-auth": "^0.1.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.19.33",
     "typescript": "^5.5.4"
   }

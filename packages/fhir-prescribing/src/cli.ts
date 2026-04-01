@@ -103,7 +103,11 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
   console.log(`Response: ${result.response.status} ${result.response.statusText}`);
-  console.log(JSON.stringify(result.response.body, null, 2));
+
+  if (result.response.status >= 400) {
+    console.log(JSON.stringify(result.response.body, null, 2));
+    throw new Error("Prescription submission failed");
+  }
 
   const outputPath = saveBundle("create", result.signedBundle, options.saveDir);
   console.log(outputPath);
@@ -143,7 +147,11 @@ async function handleCancel(options: {
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
   console.log(`Response: ${result.response.status} ${result.response.statusText}`);
-  console.log(JSON.stringify(result.response.body, null, 2));
+
+  if (result.response.status >= 400) {
+    console.log(JSON.stringify(result.response.body, null, 2));
+    throw new Error("Cancellation request failed");
+  }
 
   const outputPath = saveBundle("cancel", result.cancellationBundle, options.saveDir);
   console.log(outputPath);
@@ -184,7 +192,10 @@ async function handleSign(options: {input: string; urid?: string; algorithm?: st
       resolvedUrid,
       options.algorithm
     );
-    console.log(JSON.stringify(result, null, 2));
+
+    console.log("Digest:", result.digest);
+    console.log("Signature:", result.signature);
+    console.log("Timestamp:", result.timestamp);
   }
 }
 

@@ -41,12 +41,10 @@ async function main(): Promise<void> {
   console.log(`Correlation ID: ${correlationId}`);
   console.log(`Response: ${response.status} ${response.statusText}`);
 
-  const bodyText = await response.text();
-  try {
-    const payload = JSON.parse(bodyText);
-    console.log(JSON.stringify(payload, null, 2));
-  } catch {
-    console.log(bodyText);
+  if (response.status >= 400) {
+    const responseBody = await response.text();
+    console.log("Response body:", responseBody);
+    throw new Error("PSU request failed");
   }
 }
 
