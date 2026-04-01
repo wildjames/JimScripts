@@ -21,8 +21,41 @@ function updateMessageHeaderForCancellation(bundle: BundleLike): void {
 }
 
 export interface CancellationOptions {
+  // If not given, it defaults to "0001" (Prescribing Error)
   reasonCode?: string;
+  // If not given, then it uses the default display based on the reason code
   reasonDisplay?: string;
+}
+
+export const CANCELLATION_REASON_TYPES = [
+  "0001",
+  "0002",
+  "0003",
+  "0004"
+] as const;
+
+export type CancellationReasonType = (typeof CANCELLATION_REASON_TYPES)[number];
+
+const CANCELLATION_REASON_DISPLAY_BY_TYPE: Record<CancellationReasonType, string> = {
+  "0001": "Prescribing Error",
+  "0002": "Clinical Grounds",
+  "0003": "Patient Request",
+  "0004": "At the Discretion of the Pharmacy"
+};
+
+export function parseCancellationReasonType(value?: string): CancellationReasonType {
+  if (!value || value.trim() === "") {
+    return "0001";
+  }
+
+  const normalizedValue = value.trim() as CancellationReasonType;
+  if (CANCELLATION_REASON_TYPES.includes(normalizedValue)) {
+    return normalizedValue;
+  }
+
+  throw new Error(
+    `Unknown cancellation reason type '${value}'. Allowed values: ${CANCELLATION_REASON_TYPES.join(", ")}`
+  );
 }
 
 function updateMedicationRequestsForCancellation(
@@ -63,8 +96,9 @@ export function createCancellationBundle(
     value: randomUUID()
   };
 
-  const reasonCode = options?.reasonCode ?? "0001";
-  const reasonDisplay = options?.reasonDisplay ?? "Prescribing Error";
+  const reasonType = parseCancellationReasonType(options?.reasonCode);
+  const reasonCode = reasonType;
+  const reasonDisplay = options?.reasonDisplay ?? CANCELLATION_REASON_DISPLAY_BY_TYPE[reasonType];
 
   updateMessageHeaderForCancellation(output);
   updateMedicationRequestsForCancellation(output, reasonCode, reasonDisplay);
@@ -75,8 +109,10 @@ export function createCancellationBundle(
 export async function createAndSubmitCancellation(
   options: SubmitCancellationOptions
 ): Promise<SubmitCancellationResult> {
-  const {host, token, bundle, urid} = options;
-  const cancellationBundle = createCancellationBundle(bundle);
+  const {host, token, bundle, urid, cancellationReasonType} = options;
+  const cancellationBundle = createCancellationBundle(bundle, {
+    reasonCode: cancellationReasonType
+  });
 
   const {response, requestId, correlationId} = await sendFhirRequest({
     host,

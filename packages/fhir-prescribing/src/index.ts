@@ -19,7 +19,14 @@ export {signDigest, prepareAndSign} from "./signing.js";
 
 export {addProvenanceToBundle} from "./provenance.js";
 
-export {createCancellationBundle, createAndSubmitCancellation, type CancellationOptions} from "./cancel.js";
+export {
+  createCancellationBundle,
+  createAndSubmitCancellation,
+  parseCancellationReasonType,
+  CANCELLATION_REASON_TYPES,
+  type CancellationOptions,
+  type CancellationReasonType
+} from "./cancel.js";
 
 export {submitPrescriptionWithToken} from "./create.js";
 

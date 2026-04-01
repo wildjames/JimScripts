@@ -80,6 +80,7 @@ export interface SubmitCancellationOptions {
   token: string;
   bundle: BundleLike;
   urid?: string;
+  cancellationReasonType?: "0001" | "0002" | "0003" | "0004";
 }
 
 export interface SubmitCancellationResult {

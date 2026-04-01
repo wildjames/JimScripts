@@ -10,6 +10,8 @@ import {
   createAndSubmitCancellation,
   preparePrescription,
   prepareAndSign,
+  parseCancellationReasonType,
+  CANCELLATION_REASON_TYPES,
   SUPPORTED_ACTIONS,
   type BundleLike,
   type PrescriptionAction
@@ -107,7 +109,13 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
   console.log(outputPath);
 }
 
-async function handleCancel(options: {input: string; saveDir: string; urid?: string; userType?: string}): Promise<void> {
+async function handleCancel(options: {
+  input: string;
+  saveDir: string;
+  urid?: string;
+  userType?: string;
+  cancelReasonType?: string;
+}): Promise<void> {
   const host = getEnv("HOST");
   const inputBundle = readInputBundle(options.input);
 
@@ -128,7 +136,8 @@ async function handleCancel(options: {input: string; saveDir: string; urid?: str
     host,
     token: accessToken,
     bundle: inputBundle,
-    urid: options.urid ?? urid
+    urid: options.urid ?? urid,
+    cancellationReasonType: parseCancellationReasonType(options.cancelReasonType)
   });
 
   console.log(`Request ID: ${result.requestId}`);
@@ -192,6 +201,11 @@ async function main(): Promise<void> {
     .option("--save-dir <directory>", "Directory to save output Bundle JSON", "./data/prescriptions")
     .option("--urid <urid>", "NHSD-Session-URID value (create/cancel/sign)")
     .option("--algorithm <alg>", "Signing algorithm (create/sign)", "RSA-SHA1")
+    .option(
+      "--cancel-reason-type <code>",
+      `Cancellation reason type for cancel action (${CANCELLATION_REASON_TYPES.join(" | ")})`,
+      "0001"
+    )
     .option("--prepare-only", "Only call $prepare and return the digest without signing (sign only)", false)
     .option("--user-restricted", "Use user-restricted (CIS2 browser) auth instead of app-restricted", false)
     .option("--user-type <type>", "CIS2 user type: prescriber or dispenser (user-restricted only)", "prescriber");
@@ -203,6 +217,7 @@ async function main(): Promise<void> {
     saveDir: string;
     urid?: string;
     algorithm?: string;
+    cancelReasonType?: string;
     prepareOnly?: boolean;
     userRestricted?: boolean;
     userType?: string;

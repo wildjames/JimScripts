@@ -224,6 +224,7 @@ fhir-prescribing --action create --input ./bundle.json --urid 555254240100
 # Cancel: generate a cancellation bundle from an existing prescription
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle.json
 fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescriptions
+fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 ```
 
 **Options:**
@@ -234,6 +235,7 @@ fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescri
 | `--save-dir <directory>` | Output directory | `./data/prescriptions` |
 | `--urid <urid>` | NHSD-Session-URID value (create/sign) | optional |
 | `--algorithm <alg>` | Signing algorithm (create/sign) | `RSA-SHA1` |
+| `--cancel-reason-type <code>` | Cancellation reason type for `cancel`: `0001`, `0002`, `0003`, `0004` | `0001` |
 | `--prepare-only` | Call `$prepare` and return digest only (sign only) | `false` |
 | `--user-restricted` | Use CIS2 browser login (OAuth2 auth-code) instead of app-restricted JWT | `false` |
 | `--user-type <type>` | CIS2 user type for user-restricted mode: `prescriber` or `dispenser` | `prescriber` |
@@ -276,7 +278,7 @@ fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescri
 - Changes `MessageHeader.eventCoding` to `prescription-order-update`
 - Clears `MessageHeader.focus`
 - Sets each `MedicationRequest.status` to `cancelled`
-- Adds `MedicationRequest.statusReason` with code `0001` (Prescribing Error)
+- Adds `MedicationRequest.statusReason` using the selected cancellation reason type (`0001` default)
 
 #### Programmatic API
 

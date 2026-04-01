@@ -112,6 +112,7 @@ Output file pattern:
 
 ```bash
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json --cancel-reason-type 0003
 ```
 
 Output file pattern:

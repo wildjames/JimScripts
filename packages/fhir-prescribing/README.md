@@ -7,6 +7,7 @@ This TypeScript package provides both a CLI tool and a programmatic API for EPS 
 ## Current Action Support
 
 The package recognises these actions:
+
 - `create` — prepare, sign, and submit a prescription to EPS
 - `cancel` — generate a cancellation bundle from an existing prescription and submit it to EPS
 - `sign` — call `$prepare` and sign digests (or return digest with `--prepare-only`)
@@ -31,14 +32,17 @@ fhir-prescribing --action create --input ./bundle.json --urid 555254240100
 
 # Cancel: generate and submit a cancellation bundle
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle.json
+fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 ```
 
 **Options:**
+
 - `--action <action>` - One of `create | cancel | sign`
 - `--input <file>` - Input prescription bundle JSON
 - `--save-dir <directory>` - Directory to save output bundle JSON (default: `./data/prescriptions`)
 - `--urid <urid>` - NHSD-Session-URID value (create/cancel/sign)
 - `--algorithm <alg>` - Signing algorithm (create/sign, default: `RSA-SHA1`)
+- `--cancel-reason-type <code>` - Cancellation reason type for `cancel` (`0001 | 0002 | 0003 | 0004`, default: `0001`)
 - `--prepare-only` - Return digest only (sign only)
 - `-h, --help` - Display help
 
@@ -55,13 +59,16 @@ fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundl
 import {
   createAndSubmitPrescription,
   createCancellationBundle,
-  createAndSubmitCancellation
+  createAndSubmitCancellation,
 } from "fhir-prescribing";
 
 // Create: full flow - prepare, sign, submit
 const result = await createAndSubmitPrescription({
-  host, apiKey, kid, privateKey,
-  bundle: prescriptionBundle
+  host,
+  apiKey,
+  kid,
+  privateKey,
+  bundle: prescriptionBundle,
 });
 
 // Cancel: synchronous bundle transformation
@@ -71,7 +78,7 @@ const cancellationBundle = createCancellationBundle(createBundleJson);
 const cancellationResult = await createAndSubmitCancellation({
   host,
   token,
-  bundle: createBundleJson
+  bundle: createBundleJson,
 });
 ```
 
@@ -87,13 +94,10 @@ const cancellationResult = await createAndSubmitCancellation({
 ## What `cancel` does
 
 For each cancellation bundle generated from an input create bundle:
+
 - Generates a new Bundle `identifier.value` UUID
 - Updates `MessageHeader.eventCoding` to `prescription-order-update`
 - Clears `MessageHeader.focus`
 - Sets each `MedicationRequest.status` to `cancelled`
-- Adds `MedicationRequest.statusReason` with code `0001` (Prescribing Error)
+- Adds `MedicationRequest.statusReason` using the selected cancellation reason type (`0001` default)
 - Submits the cancellation bundle to `POST /fhir-prescribing/FHIR/R4/$process-message`
-
-## License
-
-MIT
