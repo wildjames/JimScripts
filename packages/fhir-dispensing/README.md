@@ -40,6 +40,7 @@ Options:
 - `--prescription-id <id>`: short-form prescription ID (required)
 - `--input <file>`: optional path to request body JSON (FHIR `Parameters` resource)
 - `--app-restricted`: use application-restricted auth and call `$release-unattended`; omits `agent` from the request body
+- `--pharmacy-ods <code>`: optional owner Organization ODS code override; when the CLI generates or normalizes the request body, this value is applied to the owner Organization in the FHIR `Parameters`
 - `--save-dir <directory>`: directory to save the downloaded Bundle JSON (default: `./data/prescriptions`)
 - `--urid <urid>`: optional `NHSD-Session-URID` override for user-restricted `$release`
 
