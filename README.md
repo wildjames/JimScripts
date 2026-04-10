@@ -176,7 +176,7 @@ make-psu-request --nhs-number 9991234567 --send
   - `DISPENSING_PRIVATE_KEY`
   - `DISPENSING_PRIVATE_KEY_PATH`
 
-### fhir-dispensing (user-restricted)
+### fhir-dispensing (app-restricted)
 
 - `DISPENSING_API_KEY`
 - `DISPENSING_APP_CLIENT_SECRET`
