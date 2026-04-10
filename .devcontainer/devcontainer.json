@@ -3,8 +3,8 @@
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-18-bookworm",
   "postCreateCommand": "make install && npx --prefix packages playwright install --with-deps",
   "mounts": [
-    "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind",
-    "source=${env:HOME}${env:USERPROFILE}/.gnupg,target=/home/vscode/.gnupg,type=bind"
+    "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind",
+    "source=${env:HOME}${env:USERPROFILE}/.gnupg,target=/home/node/.gnupg,type=bind"
   ],
   "customizations": {
     "vscode": {

@@ -17,7 +17,7 @@ import {
   type PrescriptionAction
 } from "./index.js";
 import {getEnv, loadPrivateKey} from "./utils.js";
-import {obtainUserRestrictedAccessToken, type Cis2UserType} from "./user-auth.js";
+import {obtainUserRestrictedAccessToken, type Cis2UserType} from "eps-auth";
 
 function readInputBundle(filePath: string): BundleLike {
   const content = readFileSync(filePath, "utf-8");
@@ -78,7 +78,7 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
 
   let result;
 
-  const clientId = getEnv("PRESCRIBE_APP_KEY");
+  const clientId = getEnv("PRESCRIBE_API_KEY");
   const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
   const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
   const userType = (options.userType ?? "prescriber") as Cis2UserType;
@@ -123,7 +123,7 @@ async function handleCancel(options: {
   const host = getEnv("HOST");
   const inputBundle = readInputBundle(options.input);
 
-  const clientId = getEnv("PRESCRIBE_APP_KEY");
+  const clientId = getEnv("PRESCRIBE_API_KEY");
   const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
   const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
   const userType = (options.userType ?? "prescriber") as Cis2UserType;
@@ -165,7 +165,7 @@ async function handleSign(options: {input: string; urid?: string; algorithm?: st
   let token: string;
   let resolvedUrid = options.urid;
 
-  const clientId = getEnv("PRESCRIBE_APP_KEY");
+  const clientId = getEnv("PRESCRIBE_API_KEY");
   const clientSecret = getEnv("PRESCRIBE_APP_CLIENT_SECRET");
   const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
   const userType = (options.userType ?? "prescriber") as Cis2UserType;

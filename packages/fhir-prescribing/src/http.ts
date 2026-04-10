@@ -1,5 +1,19 @@
 import {randomUUID} from "crypto";
 
+function resolveServicePath(path: string): string {
+  const isPr = (process.env.IS_PR ?? "").trim().toLowerCase() === "true";
+  if (!isPr) {
+    return path;
+  }
+
+  const prNumber = process.env.PR_NUMBER?.trim();
+  if (!prNumber) {
+    throw new Error("PR_NUMBER must be set when IS_PR is true");
+  }
+
+  return path.replace("/fhir-prescribing/", `/fhir-prescribing-pr-${prNumber}/`);
+}
+
 export interface FhirRequestOptions {
   host: string;
   path: string;
@@ -31,7 +45,8 @@ export async function sendFhirRequest(options: FhirRequestOptions): Promise<Fhir
     headers["NHSD-Session-URID"] = urid;
   }
 
-  const url = `https://${host}${path}`;
+  const url = `https://${host}${resolveServicePath(path)}`;
+  console.log(`Request endpoint: ${url}`);
   const response = await fetch(url, {
     method: "POST",
     headers,

@@ -29,11 +29,3 @@ export {
 } from "./cancel.js";
 
 export {submitPrescriptionWithToken} from "./create.js";
-
-export {
-  obtainUserRestrictedAccessToken,
-  CIS2_USERS,
-  type Cis2UserType,
-  type UserRestrictedAuthOptions,
-  type UserRestrictedAuthResult
-} from "./user-auth.js";

@@ -1,13 +1,13 @@
 {
-  "name": "fhir-create-prescription-generator",
+  "name": "fhir-dispensing",
   "version": "0.1.0",
-  "author": "Jim Wild <james.wild6@nhs.net",
-  "description": "Generate FHIR 'create prescription' bundles",
+  "author": "Jim Wild <james.wild6@nhs.net>",
+  "description": "Interact with EPS FHIR dispensing endpoints, including Task $release",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "fhir-create-prescription-bundle": "./dist/cli.js"
+    "fhir-dispensing": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -18,10 +18,9 @@
   "dependencies": {
     "@faker-js/faker": "^9.3.0",
     "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
     "eps-auth": "^0.1.0",
-    "nhs-number-generator": "*",
-    "ods-code-generator": "*",
-    "prescription-id-generator": "*"
+    "ods-code-generator": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

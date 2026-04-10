@@ -1,4 +1,5 @@
 import {faker} from "@faker-js/faker";
+import {CIS2_USERS} from "eps-auth";
 import {generateNhsNumber} from "nhs-number-generator";
 import {generatePrescriptionId} from "prescription-id-generator";
 import {generateOdsCode} from "ods-code-generator";
@@ -71,9 +72,8 @@ export function generatePatientData(): PatientData {
 }
 
 export function generatePractitionerData(ods?: string): PractitionerData {
-  // Generate identifiers
-  const sdsUser = "555" + Math.floor(Math.random() * 1000000000).toString().padStart(9, '0');
-  const sdsRole = Math.floor(Math.random() * 1000000000000).toString().padStart(12, '0');
+  // Use the known CIS2 mock prescriber identifiers so bundles pass Spine validation
+  const {userId: sdsUser, roleId: sdsRole} = CIS2_USERS.prescriber;
   const gmcNumber = "C" + Math.floor(Math.random() * 10000000).toString().padStart(7, '0');
   const dinNumber = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
 

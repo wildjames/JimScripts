@@ -76,6 +76,7 @@ export async function fetchBundle(
     "x-nhs-number": nhsNumber
   }
   console.log(`Fetching PfP Bundle for NHS number ${nhsNumber}...`);
+  console.log(`Request endpoint: ${url}`);
   console.log("Using headers:\n", headers);
   console.log()
 

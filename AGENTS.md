@@ -253,7 +253,7 @@ fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 | Variable | Description | Required |
 |---|---|---|
 | `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
-| `PRESCRIBE_APP_KEY` | OAuth client ID for EPS FHIR Prescribing user-restricted auth | yes |
+| `PRESCRIBE_API_KEY` | OAuth client ID for EPS FHIR Prescribing user-restricted auth | yes |
 | `PRESCRIBE_APP_CLIENT_SECRET` | OAuth client secret for EPS FHIR Prescribing user-restricted auth | yes |
 | `PRESCRIBE_CALLBACK_URL` | OAuth callback URL registered for the app (e.g. `https://google.com`) | yes |
 | `PRESCRIBE_PRIVATE_KEY` | PEM contents of the private key used to sign the digest | one of these |
@@ -346,7 +346,7 @@ sign-prescription --input ./bundle.json --algorithm RSA-SHA256
 | Variable | Description | Required |
 |---|---|---|
 | `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
-| `PRESCRIBE_APP_KEY` | OAuth client ID for EPS FHIR Prescribing user-restricted auth | yes |
+| `PRESCRIBE_API_KEY` | OAuth client ID for EPS FHIR Prescribing user-restricted auth | yes |
 | `PRESCRIBE_APP_CLIENT_SECRET` | OAuth client secret for EPS FHIR Prescribing user-restricted auth | yes |
 | `PRESCRIBE_CALLBACK_URL` | OAuth callback URL registered for the app (e.g. `https://google.com`) | yes |
 | `PRESCRIBE_PRIVATE_KEY` | PEM contents of the private key used to sign the digest | one of these |
@@ -651,7 +651,7 @@ generate-prescription-ids -n 3
 | `PRESCRIBE_KID`               | `fhir-prescribing`, `sign-prescription`                                                             | Key ID from APIM portal (app-restricted mode)     |
 | `PRESCRIBE_PRIVATE_KEY`       | `fhir-prescribing`, `sign-prescription`                                                             | PEM private key contents for digest signing       |
 | `PRESCRIBE_PRIVATE_KEY_PATH`  | `fhir-prescribing`, `sign-prescription`                                                             | Path to PEM private key file for digest signing   |
-| `PRESCRIBE_APP_KEY`           | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client ID (user-restricted mode)            |
+| `PRESCRIBE_API_KEY`           | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client ID (user-restricted mode)            |
 | `PRESCRIBE_APP_CLIENT_SECRET` | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client secret (user-restricted mode)        |
 | `PRESCRIBE_CALLBACK_URL`      | `fhir-prescribing`, `sign-prescription`                                                             | OAuth callback URL (user-restricted mode)         |
 | `API_KEY`                     | `send-psu-request`, `make-psu-request`                                                              | APIM application API key                          |

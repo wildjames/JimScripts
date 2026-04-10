@@ -32,6 +32,7 @@ make install-playwright
 - `generate-ods-codes`
 - `generate-prescription-ids`
 - `create-prescription-bundle`
+- `fhir-dispensing`
 - `fhir-prescribing`
 - `sign-prescription`
 - `generate-psu-request`
@@ -157,12 +158,29 @@ make-psu-request --nhs-number 9991234567 --send
 
 ### fhir-prescribing and sign-prescription (user-restricted)
 
-- `PRESCRIBE_APP_KEY`
+- `PRESCRIBE_API_KEY`
 - `PRESCRIBE_APP_CLIENT_SECRET`
 - `PRESCRIBE_CALLBACK_URL`
 - one of:
   - `PRESCRIBE_PRIVATE_KEY`
   - `PRESCRIBE_PRIVATE_KEY_PATH`
+- optional:
+  - `HEADLESS`
+  - `FIREFOX_TMP_DIR`
+
+### fhir-dispensing (default user-restricted)
+
+- `DISPENSING_API_KEY`
+- `DISPENSING_KID`
+- one of:
+  - `DISPENSING_PRIVATE_KEY`
+  - `DISPENSING_PRIVATE_KEY_PATH`
+
+### fhir-dispensing (app-restricted)
+
+- `DISPENSING_API_KEY`
+- `DISPENSING_APP_CLIENT_SECRET`
+- `DISPENSING_CALLBACK_URL`
 - optional:
   - `HEADLESS`
   - `FIREFOX_TMP_DIR`
