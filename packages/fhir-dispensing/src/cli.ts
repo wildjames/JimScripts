@@ -42,7 +42,8 @@ async function main(): Promise<void> {
       "Directory to save the downloaded Bundle JSON",
       "./data/prescriptions"
     )
-    .option("--urid <urid>", "NHSD-Session-URID override");
+    .option("--urid <urid>", "NHSD-Session-URID override")
+    .option("--pharmacy-ods <code>", "Pharmacy ODS code for the release owner");
 
   program.parse();
   const options = program.opts<{
@@ -51,6 +52,7 @@ async function main(): Promise<void> {
     appRestricted?: boolean;
     saveDir: string;
     urid?: string;
+    pharmacyOds?: string;
   }>();
 
   if (options.input && !existsSync(options.input)) {
@@ -61,10 +63,12 @@ async function main(): Promise<void> {
   const mode = options.appRestricted ? "unattended" : "attended";
   const body = options.input
     ? normalizeReleaseParameters(loadParameters(options.input), options.prescriptionId, {
-      includeAgent: mode === "attended"
+      includeAgent: mode === "attended",
+      pharmacyOds: options.pharmacyOds
     })
     : generateReleaseParameters(options.prescriptionId, {
-      includeAgent: mode === "attended"
+      includeAgent: mode === "attended",
+      pharmacyOds: options.pharmacyOds
     });
 
   let token: string;

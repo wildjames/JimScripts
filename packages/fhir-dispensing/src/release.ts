@@ -111,12 +111,14 @@ export async function releaseTask(options: ReleaseTaskOptions): Promise<ReleaseT
   const url = `https://${options.host}${servicePath}/FHIR/R4/Task/${endpoint}`;
   console.log(`Request endpoint: ${url}`);
 
-  const requestOutputPath = saveJsonPayload(
-    options.body,
-    options.requestSaveDir ?? "./data/prescriptions",
-    `release-request-${requestId}.json`
-  );
-  console.log(`Saved request body: ${requestOutputPath}`);
+  if (options.requestSaveDir) {
+    const requestOutputPath = saveJsonPayload(
+      options.body,
+      options.requestSaveDir,
+      `release-request-${requestId}.json`
+    );
+    console.log(`Saved request body: ${requestOutputPath}`);
+  }
 
   const response = await fetch(
     url,

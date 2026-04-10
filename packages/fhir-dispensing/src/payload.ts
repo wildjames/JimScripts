@@ -11,10 +11,11 @@ export interface ReleaseParameters extends Record<string, unknown> {
 
 export interface ReleaseParameterOptions {
   includeAgent: boolean;
+  pharmacyOds?: string;
 }
 
-function generateOrganization(): Record<string, unknown> {
-  const odsCode = generateOdsCode(5);
+function generateOrganization(odsCode?: string): Record<string, unknown> {
+  const resolvedOds = odsCode ?? generateOdsCode(5);
   const city = faker.location.city();
 
   return {
@@ -23,7 +24,7 @@ function generateOrganization(): Record<string, unknown> {
     identifier: [
       {
         system: "https://fhir.nhs.uk/Id/ods-organization-code",
-        value: odsCode
+        value: resolvedOds
       }
     ],
     active: true,
@@ -104,26 +105,19 @@ function upsertGroupIdentifier(
   rawParameters: Array<Record<string, unknown>>,
   prescriptionId: string
 ): void {
-  const groupIdentifier = rawParameters.find(
-    parameter => parameter.name === "group-identifier"
-  ) as {valueIdentifier?: {system?: string; value?: string}} | undefined;
-
-  if (!groupIdentifier) {
-    rawParameters.unshift({
-      name: "group-identifier",
-      valueIdentifier: {
-        system: "https://fhir.nhs.uk/Id/prescription-order-number",
-        value: prescriptionId
-      }
-    });
-
-    return;
+  for (let i = rawParameters.length - 1; i >= 0; i--) {
+    if (rawParameters[i].name === "group-identifier") {
+      rawParameters.splice(i, 1);
+    }
   }
 
-  groupIdentifier.valueIdentifier = {
-    system: "https://fhir.nhs.uk/Id/prescription-order-number",
-    value: prescriptionId
-  };
+  rawParameters.unshift({
+    name: "group-identifier",
+    valueIdentifier: {
+      system: "https://fhir.nhs.uk/Id/prescription-order-number",
+      value: prescriptionId
+    }
+  });
 }
 
 function normalizeAgentParameter(
@@ -138,20 +132,13 @@ function normalizeAgentParameter(
     return parametersWithoutAgent;
   }
 
-  const existingAgent = rawParameters.find(
+  const firstAgent = rawParameters.find(
     parameter => parameter.name === "agent"
   );
 
-  if (existingAgent) {
-    return rawParameters;
-  }
-
   return [
     ...parametersWithoutAgent,
-    {
-      name: "agent",
-      resource: generateAgent()
-    }
+    firstAgent ?? {name: "agent", resource: generateAgent()}
   ];
 }
 
@@ -169,7 +156,7 @@ export function generateReleaseParameters(
     },
     {
       name: "owner",
-      resource: generateOrganization()
+      resource: generateOrganization(options.pharmacyOds)
     },
     {
       name: "status",
