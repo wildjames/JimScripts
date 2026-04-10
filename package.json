@@ -5,6 +5,7 @@
   "description": "Monorepo workspace for EPS TypeScript CLI tools",
   "workspaces": [
     "packages/eps-auth",
+    "packages/fhir-dispensing",
     "packages/fhir-create-prescription-generator",
     "packages/fhir-prescribing",
     "packages/nhs-number-generator",
@@ -17,6 +18,7 @@
   ],
   "bin": {
     "create-prescription-bundle": "./packages/fhir-create-prescription-generator/dist/cli.js",
+    "fhir-dispensing": "./packages/fhir-dispensing/dist/cli.js",
     "fhir-prescribing": "./packages/fhir-prescribing/dist/cli.js",
     "generate-nhs-numbers": "./packages/nhs-number-generator/dist/cli.js",
     "generate-ods-codes": "./packages/ods-code-generator/dist/cli.js",
@@ -29,7 +31,7 @@
   },
   "scripts": {
     "install-playwright": "npx playwright install",
-    "build": "npm run build --workspace ods-code-generator && npm run build --workspace nhs-number-generator && npm run build --workspace prescription-id-generator && npm run build --workspace fhir-create-prescription-generator && npm run build --workspace eps-auth && npm run build --workspace fhir-prescribing && npm run build --workspace pfp-request-sender && npm run build --workspace psu-request-generator && npm run build --workspace psu-request-sender && npm run build --workspace psu-request-wizard",
+    "build": "npm run build --workspace ods-code-generator && npm run build --workspace nhs-number-generator && npm run build --workspace prescription-id-generator && npm run build --workspace fhir-create-prescription-generator && npm run build --workspace eps-auth && npm run build --workspace fhir-prescribing && npm run build --workspace fhir-dispensing && npm run build --workspace pfp-request-sender && npm run build --workspace psu-request-generator && npm run build --workspace psu-request-sender && npm run build --workspace psu-request-wizard",
     "clean": "rm -rf */dist */node_modules node_modules"
   }
 }

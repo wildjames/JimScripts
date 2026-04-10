@@ -30,7 +30,7 @@ export async function sendPsu(
     }
     url = `https://${host}/prescription-status-update-pr-${prNumber}/`;
   }
-  console.log(`Sending PSU to ${url}`);
+  console.log(`Request endpoint: ${url}`);
 
   const requestId = randomUUID();
   const correlationId = randomUUID();

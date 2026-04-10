@@ -1,11 +1,14 @@
 {
-  "name": "eps-auth",
+  "name": "fhir-dispensing",
   "version": "0.1.0",
   "author": "Jim Wild <james.wild6@nhs.net>",
-  "description": "Shared authentication helpers for EPS TypeScript tools",
+  "description": "Interact with EPS FHIR dispensing endpoints, including Task $release",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "fhir-dispensing": "./dist/cli.js"
+  },
   "files": [
     "dist"
   ],
@@ -13,11 +16,13 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "jsonwebtoken": "^9.0.2",
-    "playwright": "^1.52.0"
+    "@faker-js/faker": "^9.3.0",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "eps-auth": "^0.1.0",
+    "ods-code-generator": "^0.1.0"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20.19.33",
     "typescript": "^5.5.4"
   }

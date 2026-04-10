@@ -131,7 +131,7 @@ Before running auth-dependent commands, verify required variables:
 
 - Shared host: `HOST`
 - Prescribing app-restricted: `PRESCRIBE_API_KEY`, `PRESCRIBE_KID`, and one of `PRESCRIBE_PRIVATE_KEY` or `PRESCRIBE_PRIVATE_KEY_PATH`
-- Prescribing user-restricted: `PRESCRIBE_APP_KEY`, `PRESCRIBE_APP_CLIENT_SECRET`, `PRESCRIBE_CALLBACK_URL`, plus private key var
+- Prescribing user-restricted: `PRESCRIBE_API_KEY`, `PRESCRIBE_APP_CLIENT_SECRET`, `PRESCRIBE_CALLBACK_URL`, plus private key var
 - PSU sender: `API_KEY`, `PSU_KID`, and one of `PRIVATE_KEY` or `PSU_PRIVATE_KEY_PATH`
 - PfP sender: `PFP_API_KEY`, `PFP_CLIENT_SECRET`
 

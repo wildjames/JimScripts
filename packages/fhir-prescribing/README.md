@@ -53,6 +53,11 @@ fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 - `PRESCRIBE_KID`: key ID from APIM portal
 - `PRESCRIBE_PRIVATE_KEY`: PEM contents of the private key (or `PRESCRIBE_PRIVATE_KEY_PATH`: path to PEM file)
 
+Optional PR routing variables:
+
+- `IS_PR`: set to `true` to target a prescribing PR deployment
+- `PR_NUMBER`: PR number used when `IS_PR` is `true` (for example `4523` -> `/fhir-prescribing-pr-4523`)
+
 ### As a library
 
 ```typescript
