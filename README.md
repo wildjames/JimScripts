@@ -168,7 +168,7 @@ make-psu-request --nhs-number 9991234567 --send
   - `HEADLESS`
   - `FIREFOX_TMP_DIR`
 
-### fhir-dispensing (default app-restricted)
+### fhir-dispensing (default user-restricted)
 
 - `DISPENSING_API_KEY`
 - `DISPENSING_KID`
