@@ -20,7 +20,8 @@
     "commander": "^12.1.0",
     "eps-auth": "^0.1.0",
     "fhir-create-prescription-generator": "^0.1.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "nhs-number-utils": "*"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

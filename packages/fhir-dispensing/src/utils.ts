@@ -1,6 +1,7 @@
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
 import {join} from "path";
 
+import {findNhsNumber} from "nhs-number-utils";
 import type {BundleLike} from "./release.js";
 
 export function getEnv(name: string): string {
@@ -43,22 +44,6 @@ export function saveJsonPayload(
   const outputPath = join(saveDir, fileName);
   writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
   return outputPath;
-}
-
-function findNhsNumber(bundle: BundleLike): string | undefined {
-  for (const entry of bundle.entry ?? []) {
-    const resource = entry.resource;
-    if (resource?.resourceType !== "Patient") {
-      continue;
-    }
-
-    const value = resource.identifier?.[0]?.value;
-    if (value) {
-      return value;
-    }
-  }
-
-  return undefined;
 }
 
 export function saveBundle(

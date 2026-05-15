@@ -1,5 +1,5 @@
 {
-  "name": "nhs-number-generator",
+  "name": "nhs-number-utils",
   "version": "0.1.0",
   "author": "Jim Wild <james.wild6@nhs.net",
   "description": "Generate and validate NHS numbers",

@@ -4,7 +4,7 @@ import {createInterface} from "readline/promises";
 import {stdin as input, stdout as output} from "process";
 
 import {config} from "dotenv";
-import {validateNhsNumber} from "nhs-number-generator";
+import {validateNhsNumber} from "nhs-number-utils";
 import {fetchBundle, getPfpEnv, saveBundle} from "pfp-request-sender";
 import {
   BUSINESS_STATUS_CHOICES,

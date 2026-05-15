@@ -7,6 +7,9 @@ const DEFAULT_FIREFOX_TMP_DIR = "./tmp/test_firefox";
 export type Cis2UserType = "prescriber" | "dispenser";
 
 export const CIS2_USERS: Record<Cis2UserType, {userId: string; roleId: string}> = {
+  // TODO: These are currently hardcoded to specific values that work with the NHS oauth2-mock.
+  // These are pre-defined test credentials. I don't know how (or even if) these can be made, assigned, whatever,
+  // so I'm just going to hardcode them. If that ever becomes a problem, this record will need to be made configurable.
   prescriber: {userId: "656005750107", roleId: "555254242105"},
   dispenser: {userId: "555260695103", roleId: "555265434108"}
 };
@@ -114,12 +117,16 @@ export async function obtainBrowserAuthCodeAccessToken(
 
   const {codeVerifier, codeChallenge} = generatePkcePair();
 
+  // For the state, use a random UUID.
+  // TODO: This should ideally be checked in the response to prevent CSRF
+  const state = randomUUID();
+
   const authUrl = new URL(`https://${host}${authorizePath}`);
   authUrl.searchParams.set("response_type", "code");
   authUrl.searchParams.set("client_id", clientId);
   authUrl.searchParams.set("redirect_uri", redirectUri);
   authUrl.searchParams.set("scope", scope);
-  authUrl.searchParams.set("state", "state123");
+  authUrl.searchParams.set("state", state);
   authUrl.searchParams.set("code_challenge", codeChallenge);
   authUrl.searchParams.set("code_challenge_method", "S256");
 
@@ -131,6 +138,7 @@ export async function obtainBrowserAuthCodeAccessToken(
 
   let redirectResponse = "";
 
+  // Auth flow script. If this auth suddenly stops working, this is almost certainly why!
   try {
     const page = await context.newPage();
     await page.goto(authUrl.toString());

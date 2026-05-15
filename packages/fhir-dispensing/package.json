@@ -20,6 +20,7 @@
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
     "eps-auth": "^0.1.0",
+    "nhs-number-utils": "*",
     "ods-code-generator": "^0.1.0"
   },
   "devDependencies": {

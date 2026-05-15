@@ -5,6 +5,7 @@ import {config} from "dotenv";
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
 import {join} from "path";
 
+import {findNhsNumber} from "nhs-number-utils";
 import {
   submitPrescriptionWithToken,
   createAndSubmitCancellation,
@@ -24,28 +25,12 @@ function readInputBundle(filePath: string): BundleLike {
   return JSON.parse(content) as BundleLike;
 }
 
-function findNhsNumber(bundle: BundleLike): string {
-  for (const entry of bundle.entry ?? []) {
-    const resource = entry.resource;
-    if (resource?.resourceType !== "Patient") {
-      continue;
-    }
-
-    const value = resource.identifier?.[0]?.value;
-    if (value) {
-      return value;
-    }
-  }
-
-  return "unknown-nhs-number";
-}
-
 function saveBundle(action: PrescriptionAction, bundle: BundleLike, saveDir: string): string {
   if (!existsSync(saveDir)) {
     mkdirSync(saveDir, {recursive: true});
   }
 
-  const nhsNumber = findNhsNumber(bundle);
+  const nhsNumber = findNhsNumber(bundle) ?? "unknown-nhs-number";
   const timestamp = new Date()
     .toISOString()
     .replace(/[:.]/g, "-")

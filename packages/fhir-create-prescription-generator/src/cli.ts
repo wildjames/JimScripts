@@ -3,36 +3,15 @@
 import {Command} from "commander";
 import {writeFileSync, mkdirSync, existsSync} from "fs";
 import {join} from "path";
+import {findNhsNumber} from "nhs-number-utils";
 import {createPrescriptionMessageBundle} from "./prescription.js";
-
-function findNhsNumber(bundle: any): string {
-  // This is probably not robust enough - but it will work for now. If it ever fails, I'll have to rework it
-  // Look through entries to find NHS number
-  for (const entry of bundle.entry || []) {
-    const resource = entry.resource;
-
-    // Check MedicationRequest subject identifier
-    if (resource.resourceType === "MedicationRequest") {
-      const subjectIdentifier = resource.subject?.identifier?.[0]?.value;
-      if (subjectIdentifier) return subjectIdentifier;
-    }
-
-    // Check Patient identifier
-    if (resource.resourceType === "Patient") {
-      const patientIdentifier = resource.identifier?.[0]?.value;
-      if (patientIdentifier) return patientIdentifier;
-    }
-  }
-
-  return "unknown-nhs-number";
-}
 
 function saveBundle(prefix: string, bundle: any, saveDir: string): void {
   if (!existsSync(saveDir)) {
     mkdirSync(saveDir, {recursive: true});
   }
 
-  const nhsNumber = findNhsNumber(bundle);
+  const nhsNumber = findNhsNumber(bundle) ?? "unknown-nhs-number";
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').split('-').slice(0, 6).join('');
 
   const fileName = `${prefix}_${timestamp}_nhs-num-${nhsNumber}.json`;
