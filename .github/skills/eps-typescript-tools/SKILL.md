@@ -3,157 +3,102 @@ name: eps-typescript-tools
 description: "Use when: working on NHS EPS tooling in this repository, including generating NHS numbers or ODS codes, creating/signing/cancelling FHIR prescription bundles, generating/sending PSU bundles, running PfP flows, and checking required auth environment variables."
 ---
 
-# EPS TypeScript Tools Skill
+# EPS TypeScript Tools
 
-## Purpose
+## Overview
 
-Use this skill to handle requests in the EPS tools monorepo that involve:
+This is an npm workspace monorepo (`packages/`) providing CLI tools for NHS Electronic Prescription Service (EPS) testing. All tools generate or manipulate FHIR-compliant resources.
 
-- Test data generation (NHS numbers, ODS codes, prescription IDs)
-- Prescription bundle generation, signing, submission, and cancellation
-- PSU request generation and submission
-- PfP retrieval and PfP-to-PSU interactive workflows
-- Verifying setup, build, CLI linking, and required environment variables
+## Setup
 
-## Repository Facts
-
-- Workspace root contains `packages/` with one CLI package per tool.
-- Canonical package docs live in `AGENTS.md` and each package `README.md`.
-- The workspace root `package.json` exposes linked convenience commands
-- Generated data is typically written under `data/prescriptions/` and `data/psu_requests/`.
-- Configuration is done with a `.env` file that is loaded by the CLI tools automatically. You do not need to check for things being set correctly - just assume they are until errors say otherwise.
-
-## Setup Commands
-
-Installation has most likely already been done. However, if you find that a command is not found, run these commands to install the tools:
+Installation is done as part of the devcontainer build. Re-run only if a command returns "not found" or after editing TypeScript source:
 
 ```bash
-make install
-make build
-make link
+make install    # Install all dependencies
+make build      # Build all packages in dependency order
+make link       # Globally link all CLI commands
 ```
 
-Manual alternative:
-
-```bash
-cd packages
-npm install
-npm run build
-npm link
-```
-
-Playwright (required for PfP and user-restricted login flows):
+For PfP and user-restricted flows:
 
 ```bash
 make install-playwright
-# or: cd packages && npx playwright install
 ```
 
-## Primary CLI Workflows
+## Quick Reference
 
-### Generate test identifiers
+| CLI Command                       | Purpose                                              |
+| --------------------------------- | ---------------------------------------------------- |
+| `generate-nhs-numbers`            | Generate/validate NHS numbers                        |
+| `generate-ods-codes`              | Generate ODS organisation codes                      |
+| `generate-prescription-ids`       | Generate prescription order numbers                  |
+| `fhir-create-prescription-bundle` | Create FHIR prescription message bundles             |
+| `fhir-prescribing`                | Create, cancel, sign, and submit prescriptions       |
+| `sign-prescription`               | Prepare and sign prescriptions via $prepare endpoint |
+| `generate-psu-request`            | Generate PSU FHIR bundles                            |
+| `send-psu-request`                | Send PSU bundles to PSU API                          |
+| `send-pfp-request`                | Fetch Prescriptions-for-Patients bundles             |
+| `make-psu-request`                | Interactive wizard: PfP fetch + PSU gen/send         |
+
+For full CLI options and flags, see [Tool Inventory](./references/tool-inventory.md).
+
+## Key Workflows
 
 ```bash
-generate-nhs-numbers -n 10
+# Generate test data
 generate-ods-codes -n 5
-generate-prescription-ids -n 3
-```
 
-### Create a prescription bundle
+# Create + submit prescription
+fhir-create-prescription-bundle --nhs-number 9998481732 --count 2
+fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json
 
-```bash
-create-prescription-bundle --nhs-number 9998481732 --count 2
-```
+# Cancel prescription
+fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json
 
-Expected output pattern:
-
-```bash
-./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
-```
-
-### Create and submit a prescription
-
-```bash
-fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>.json
-```
-
-Expected output pattern:
-
-```bash
-./data/prescriptions/create-bundle_<timestamp>_nhs-num-<number>.json
-```
-
-### Cancel an existing prescription bundle
-
-```bash
-fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>.json
-```
-
-This action generates a cancellation bundle and submits it to EPS.
-
-Expected output pattern:
-
-```bash
-./data/prescriptions/cancel-bundle_<timestamp>_nhs-num-<number>.json
-```
-
-### Sign only
-
-```bash
-sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>.json
-sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>.json --prepare-only
-```
-
-### End-to-end create, submit, and cancel
-
-```bash
-create-prescription-bundle --count 1
-fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
-fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
-```
-
-### Generate and send PSU
-
-```bash
+# Generate and send PSU
 generate-psu-request --business-status "With Pharmacy" -o psu.json
 send-psu-request --input psu.json
+
+# Full PfP-to-PSU interactive flow
+make-psu-request --nhs-number 9998481732 --send
 ```
 
-### PfP to PSU workflow
+For more workflow examples, see [Workflows](./references/workflows.md).
 
-```bash
-make-psu-request --nhs-number 9991234567 --send
-```
+## Environment Variables
 
-## Environment Variable Checklist
+Configuration is via a `.env` file loaded automatically. Assume variables are set until errors indicate otherwise.
 
-Before running auth-dependent commands, verify required variables:
+Key groups:
 
-- Shared host: `HOST`
-- Prescribing app-restricted: `PRESCRIBE_API_KEY`, `PRESCRIBE_KID`, and one of `PRESCRIBE_PRIVATE_KEY` or `PRESCRIBE_PRIVATE_KEY_PATH`
-- Prescribing user-restricted: `PRESCRIBE_API_KEY`, `PRESCRIBE_APP_CLIENT_SECRET`, `PRESCRIBE_CALLBACK_URL`, plus private key var
-- PSU sender: `API_KEY`, `PSU_KID`, and one of `PRIVATE_KEY` or `PSU_PRIVATE_KEY_PATH`
-- PfP sender: `PFP_API_KEY`, `PFP_CLIENT_SECRET`
+- **Prescribing (app-restricted):** `HOST`, `PRESCRIBE_API_KEY`, `PRESCRIBE_KID`, `PRESCRIBE_PRIVATE_KEY`/`PRESCRIBE_PRIVATE_KEY_PATH`
+- **Prescribing (user-restricted):** `HOST`, `PRESCRIBE_API_KEY`, `PRESCRIBE_APP_CLIENT_SECRET`, `PRESCRIBE_CALLBACK_URL`, plus private key
+- **PSU sending:** `HOST`, `API_KEY`, `PSU_KID`, `PRIVATE_KEY`/`PSU_PRIVATE_KEY_PATH`
+- **PfP fetching:** `HOST`, `PFP_API_KEY`, `PFP_CLIENT_SECRET`
+
+Full variable reference: [Environment Variables](./references/environment-variables.md).
+
+## Programmatic APIs
+
+All packages export TypeScript APIs. See [Programmatic APIs](./references/programmatic-apis.md) for import examples.
+
+## Data Directories
+
+| Path                    | Contents                                             |
+| ----------------------- | ---------------------------------------------------- |
+| `./data/prescriptions/` | Prescription bundles, create bundles, cancel bundles |
+| `./data/psu_requests/`  | PSU request bundles and PfP responses                |
+| `./data/keys/`          | JWKS key pairs for app-restricted auth               |
 
 ## Operating Guidance
 
-1. Prefer package README details if behavior in `AGENTS.md` and implementation differ.
+1. Prefer the root-linked CLI names available on `PATH`.
 2. For commands that write files, state expected output path and filename pattern.
-3. When working from the repo root, prefer the root-linked CLI names that are actually available on `PATH`, even if package docs use a package-local command name.
-4. For `fhir-prescribing --action create` and `--action cancel`, report both the HTTP response status and the saved output bundle path.
-5. `cancel` is a generate-and-submit workflow in current docs and implementation, not just a local transform.
-6. For failures, capture:
-   - command run
-   - key env var presence (not secret values)
-   - HTTP status and response body when available
-7. Never print private key contents in logs or chat responses.
-8. Keep examples consistent with valid business statuses:
-   - `With Pharmacy`
-   - `Ready to Collect`
-   - `Ready to Dispatch`
-   - `Dispatched`
-   - `Collected`
-   - `Not Dispensed`
+3. For `fhir-prescribing --action create` and `--action cancel`, report both HTTP response status and saved output bundle path.
+4. `cancel` is a generate-and-submit workflow, not just a local transform.
+5. For failures, capture: command run, key env var presence (not secret values), HTTP status and response body.
+6. **Never print private key contents in logs or chat responses.**
+7. Valid business statuses: `With Pharmacy`, `Ready to Collect`, `Ready to Dispatch`, `Dispatched`, `Collected`, `Not Dispensed`.
 
 ## Done Criteria
 

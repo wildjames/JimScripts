@@ -4,9 +4,9 @@ install-playwright:
 	npm run install-playwright
 
 install:
-	npm install
+	npm i
 
-build: install
+build: install install-playwright
 	npm run build
 
 link: build

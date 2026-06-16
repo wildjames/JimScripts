@@ -1,6 +1,6 @@
 # EPS TypeScript Tools — LLM Reference Guide
 
-This document describes the complete set of CLI tools and programmatic APIs available in this repository. All tools relate to the NHS Electronic Prescription Service (EPS) and generate or manipulate FHIR-compliant resources for testing purposes. Your environment will already have been configured correctly to send requests using all tools described in this document.
+This document describes the complete set of CLI tools and programmatic APIs available in this repository. All tools relate to the NHS Electronic Prescription Service (EPS) and generate or manipulate FHIR-compliant resources for testing purposes.
 
 ## Repository Structure
 
@@ -8,17 +8,13 @@ This is an npm workspace monorepo with packages under `packages/`. All tools are
 
 ### Setup
 
+The setup has already been done as part of the devcontainer build. Only re-run these steps if a CLI command returns "command not found", or if you have edited TypeScript source files under `packages/.
+
 ```bash
 # From the repository root:
 make install    # Install all dependencies
 make build      # Build all packages in dependency order
 make link       # Globally link all CLI commands
-
-# Or manually:
-cd typescript
-npm install
-npm run build
-npm link
 ```
 
 The PfP Request Sender, and user-restricted mode in FHIR Prescribing, additionally require Playwright browsers:
@@ -94,7 +90,7 @@ calculateCheckDigit("999123456"); // → number
 
 ### 2. `generate-ods-codes` — ODS Code Generator
 
-Generates Organisation Data Service codes following observed NHS patterns.
+Generates Organisation Data Service (ODS) codes following observed NHS patterns.
 
 #### CLI
 
@@ -212,6 +208,8 @@ const bundle = createPrescriptionMessageBundle({
 
 Performs EPS FHIR prescribing actions on prescription bundles. Supports `create` (prepare, sign, and submit a prescription), `cancel` (generate a cancellation bundle), and `sign` (prepare and optionally sign a prescription digest).
 
+**Important:** The `sign` action only prepares and signs the prescription—it does NOT submit it. To submit, use `--action create` which performs prepare + sign + submit in one step. If you need to sign first and submit separately, use `sign` then manually POST the signed bundle to the `$process-message` endpoint.
+
 #### CLI
 
 ```bash
@@ -238,7 +236,7 @@ fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 | `--cancel-reason-type <code>` | Cancellation reason type for `cancel`: `0001`, `0002`, `0003`, `0004` | `0001` |
 | `--prepare-only` | Call `$prepare` and return digest only (sign only) | `false` |
 | `--user-restricted` | Use CIS2 browser login (OAuth2 auth-code) instead of app-restricted JWT | `false` |
-| `--user-type <type>` | CIS2 user type for user-restricted mode: `prescriber` or `dispenser` | `prescriber` |
+| `--user-type <type>` | CIS2 user type for user-restricted mode: `prescriber` or `dispenser`. Use `prescriber` when the CIS2 login credential belongs to a prescribing clinician. Use `dispenser` when the credential belongs to a dispensing pharmacist. This affects which role/access scope is requested during the OAuth2 flow. | `prescriber` |
 
 **Environment variables (app-restricted mode, required for `create`/`sign`):**
 | Variable | Description | Required |
@@ -538,6 +536,11 @@ const bundle = await fetchBundle(
 ### 10. `make-psu-request` — PSU Request Wizard
 
 Interactive wizard that combines PfP fetching, PSU bundle generation, and optional sending. Three modes of operation:
+
+| Flags Present | Mode | Requirements |
+|--wizard | Synthetic | No env vars needed |
+|--input <file> | From File | No env vars needed |
+|--nhs-number (without --wizard) | Live PfP | PFP env vars required |
 
 #### Mode 1: Synthetic Wizard
 

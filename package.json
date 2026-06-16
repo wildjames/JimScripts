@@ -33,5 +33,8 @@
     "install-playwright": "npx playwright install",
     "build": "npm run build --workspace ods-code-generator && npm run build --workspace nhs-number-utils && npm run build --workspace prescription-id-generator && npm run build --workspace fhir-create-prescription-generator && npm run build --workspace eps-auth && npm run build --workspace fhir-prescribing && npm run build --workspace fhir-dispensing && npm run build --workspace pfp-request-sender && npm run build --workspace psu-request-generator && npm run build --workspace psu-request-sender && npm run build --workspace psu-request-wizard",
     "clean": "rm -rf */dist */node_modules node_modules"
+  },
+  "dependencies": {
+    "playwright": "^1.60.0"
   }
 }
