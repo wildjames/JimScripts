@@ -1,8 +1,8 @@
 {
-  "name": "ods-code-generator",
+  "name": "data-generators",
   "version": "0.1.0",
   "author": "Jim Wild <james.wild6@nhs.net",
-  "description": "Generate ODS (Organisation Data Service) codes",
+  "description": "Generate test data: ODS codes, FHIR Organizations, PractitionerRoles",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,6 +16,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@faker-js/faker": "^9.3.0",
     "commander": "^12.1.0"
   },
   "devDependencies": {

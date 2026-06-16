@@ -25,7 +25,7 @@ function main(): void {
   const program = new Command();
 
   program
-    .name("fhir-create-prescription-bundle")
+    .name("create-prescription-bundle")
     .description("Generate a FHIR JSON message for a create prescription order message.")
     .option(
       "--nhs-number <number>",

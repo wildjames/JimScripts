@@ -29,18 +29,18 @@ Note that environment variables are required, but not all need to be set for eve
 
 ## Quick Reference
 
-| CLI Command                       | Purpose                                              |
-| --------------------------------- | ---------------------------------------------------- |
-| `generate-nhs-numbers`            | Generate/validate NHS numbers                        |
-| `generate-ods-codes`              | Generate ODS organisation codes                      |
-| `generate-prescription-ids`       | Generate prescription order numbers                  |
-| `fhir-create-prescription-bundle` | Create FHIR prescription message bundles             |
-| `fhir-prescribing`                | Create, cancel, sign, and submit prescriptions       |
-| `sign-prescription`               | Prepare and sign prescriptions via $prepare endpoint |
-| `generate-psu-request`            | Generate PSU FHIR bundles                            |
-| `send-psu-request`                | Send PSU bundles to PSU API                          |
-| `send-pfp-request`                | Fetch Prescriptions-for-Patients bundles             |
-| `make-psu-request`                | Interactive wizard: PfP fetch + PSU gen/send         |
+| CLI Command                  | Purpose                                              |
+| ---------------------------- | ---------------------------------------------------- |
+| `generate-nhs-numbers`       | Generate/validate NHS numbers                        |
+| `generate-ods-codes`         | Generate ODS organisation codes                      |
+| `generate-prescription-ids`  | Generate prescription order numbers                  |
+| `create-prescription-bundle` | Create FHIR prescription message bundles             |
+| `fhir-prescribing`           | Create, cancel, sign, and submit prescriptions       |
+| `sign-prescription`          | Prepare and sign prescriptions via $prepare endpoint |
+| `generate-psu-request`       | Generate PSU FHIR bundles                            |
+| `send-psu-request`           | Send PSU bundles to PSU API                          |
+| `send-pfp-request`           | Fetch Prescriptions-for-Patients bundles             |
+| `make-psu-request`           | Interactive wizard: PfP fetch + PSU gen/send         |
 
 For full CLI options and flags, see [Tool Inventory](./references/tool-inventory.md).
 
@@ -51,7 +51,7 @@ For full CLI options and flags, see [Tool Inventory](./references/tool-inventory
 generate-ods-codes -n 5
 
 # Create + submit prescription
-fhir-create-prescription-bundle --nhs-number 9998481732 --count 2
+create-prescription-bundle --nhs-number 9998481732 --count 2
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json
 
 # Cancel prescription

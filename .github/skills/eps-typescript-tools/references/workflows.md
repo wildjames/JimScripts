@@ -12,7 +12,7 @@ generate-prescription-ids -n 3
 
 ```bash
 # Step 1: Create a prescription bundle
-fhir-create-prescription-bundle --nhs-number 9998481732 --count 2
+create-prescription-bundle --nhs-number 9998481732 --count 2
 
 # Step 2: Submit it (requires prescribing env vars)
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json
@@ -32,7 +32,7 @@ Output: `./data/prescriptions/cancel-bundle_<timestamp>_nhs-num-<number>.json`
 ## Workflow 4: End-to-End Create + Cancel
 
 ```bash
-fhir-create-prescription-bundle --count 1
+create-prescription-bundle --count 1
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
 ```

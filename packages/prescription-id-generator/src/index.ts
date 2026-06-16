@@ -4,7 +4,7 @@
  * Format: [6 alphanumeric]-[ODS]-[5 alphanumeric][check digit]
  */
 
-import {generateOdsCode} from "ods-code-generator";
+import {generateOdsCode} from "data-generators";
 
 const PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
 const ALPHANUM = "ABCDEF0123456789";

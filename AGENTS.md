@@ -28,18 +28,18 @@ make install-playwright
 
 ## Tool Inventory
 
-| CLI Command                       | Package                     | Purpose                                                           |
-| --------------------------------- | --------------------------- | ----------------------------------------------------------------- |
-| `generate-nhs-numbers`            | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
-| `generate-ods-codes`              | `ods-code-generator`        | Generate ODS organisation codes                                   |
-| `generate-prescription-ids`       | `prescription-id-generator` | Generate prescription order numbers                               |
-| `fhir-create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
-| `fhir-prescribing`                | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
-| `sign-prescription`               | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
-| `generate-psu-request`            | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
-| `send-psu-request`                | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
-| `send-pfp-request`                | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
-| `make-psu-request`                | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
+| CLI Command                  | Package                     | Purpose                                                           |
+| ---------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `generate-nhs-numbers`       | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
+| `generate-ods-codes`         | `ods-code-generator`        | Generate ODS organisation codes                                   |
+| `generate-prescription-ids`  | `prescription-id-generator` | Generate prescription order numbers                               |
+| `create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
+| `fhir-prescribing`           | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
+| `sign-prescription`          | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
+| `generate-psu-request`       | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
+| `send-psu-request`           | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
+| `send-pfp-request`           | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
+| `make-psu-request`           | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
 
 ---
 
@@ -163,17 +163,17 @@ computePrescriptionIdCheckDigit("ABC123-A12345-DEF45"); // → check digit char
 
 ---
 
-### 4. `fhir-create-prescription-bundle` — Prescription Bundle Creator
+### 4. `create-prescription-bundle` — Prescription Bundle Creator
 
 Generates complete FHIR prescription message bundles containing MessageHeader, MedicationRequest(s), Patient, PractitionerRole, Practitioner, and Organization resources.
 
 #### CLI
 
 ```bash
-fhir-create-prescription-bundle                                # Single prescription, all auto-generated
-fhir-create-prescription-bundle --count 3 --nhs-number 9998481732  # 3 medication requests for a specific patient
-fhir-create-prescription-bundle --pharmacy-ods FA565 --practitioner-ods A83008 --count 2
-fhir-create-prescription-bundle --save-dir /tmp/my-prescriptions
+create-prescription-bundle                                # Single prescription, all auto-generated
+create-prescription-bundle --count 3 --nhs-number 9998481732  # 3 medication requests for a specific patient
+create-prescription-bundle --pharmacy-ods FA565 --practitioner-ods A83008 --count 2
+create-prescription-bundle --save-dir /tmp/my-prescriptions
 ```
 
 **Options:**
@@ -609,7 +609,7 @@ await runWizard({
 
 ```bash
 # Step 1: Create a prescription bundle
-fhir-create-prescription-bundle --nhs-number 9998481732 --count 2
+create-prescription-bundle --nhs-number 9998481732 --count 2
 
 # Step 2: Cancel it (use the output file from step 1)
 prescription-action --action cancel \

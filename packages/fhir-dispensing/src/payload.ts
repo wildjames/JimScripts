@@ -1,7 +1,6 @@
 import {randomUUID} from "crypto";
 
-import {faker} from "@faker-js/faker";
-import {generateOdsCode} from "ods-code-generator";
+import {generateOrganization, generatePractitionerRole} from "data-generators";
 
 export interface ReleaseParameters extends Record<string, unknown> {
   resourceType: "Parameters";
@@ -12,93 +11,6 @@ export interface ReleaseParameters extends Record<string, unknown> {
 export interface ReleaseParameterOptions {
   includeAgent: boolean;
   pharmacyOds?: string;
-}
-
-function generateOrganization(odsCode?: string): Record<string, unknown> {
-  const resolvedOds = odsCode ?? generateOdsCode(5);
-  const city = faker.location.city();
-
-  return {
-    resourceType: "Organization",
-    id: randomUUID(),
-    identifier: [
-      {
-        system: "https://fhir.nhs.uk/Id/ods-organization-code",
-        value: resolvedOds
-      }
-    ],
-    active: true,
-    type: [
-      {
-        coding: [
-          {
-            system: "https://fhir.nhs.uk/CodeSystem/organisation-role",
-            code: "182",
-            display: "PHARMACY"
-          }
-        ]
-      }
-    ],
-    name: `${faker.person.lastName()} Pharmacy`,
-    telecom: [
-      {
-        system: "phone",
-        value: faker.phone.number({style: "international"}),
-        use: "work"
-      }
-    ],
-    address: [
-      {
-        use: "work",
-        type: "both",
-        line: [faker.location.streetAddress(), faker.location.secondaryAddress()],
-        city,
-        district: faker.location.county(),
-        postalCode: faker.location.zipCode("??# #??")
-      }
-    ]
-  };
-}
-
-function generateAgent(): Record<string, unknown> {
-  const firstName = faker.person.firstName();
-  const lastName = faker.person.lastName();
-
-  return {
-    resourceType: "PractitionerRole",
-    id: randomUUID(),
-    identifier: [
-      {
-        system: "https://fhir.nhs.uk/Id/sds-role-profile-id",
-        value: `555${faker.number.int({min: 100000000, max: 999999999})}`
-      }
-    ],
-    practitioner: {
-      identifier: {
-        system: "https://fhir.nhs.uk/Id/sds-user-id",
-        value: `${faker.number.int({min: 1000000000, max: 9999999999})}`
-      },
-      display: `${firstName} ${lastName}`
-    },
-    code: [
-      {
-        coding: [
-          {
-            system: "https://fhir.nhs.uk/CodeSystem/NHSDigital-SDS-JobRoleCode",
-            code: "R8000",
-            display: "Clinical Practitioner Access Role"
-          }
-        ]
-      }
-    ],
-    telecom: [
-      {
-        system: "phone",
-        value: faker.phone.number({style: "international"}),
-        use: "work"
-      }
-    ]
-  };
 }
 
 function upsertGroupIdentifier(
@@ -138,7 +50,7 @@ function normalizeAgentParameter(
 
   return [
     ...parametersWithoutAgent,
-    firstAgent ?? {name: "agent", resource: generateAgent()}
+    firstAgent ?? {name: "agent", resource: generatePractitionerRole()}
   ];
 }
 
@@ -167,7 +79,7 @@ export function generateReleaseParameters(
   if (options.includeAgent) {
     parameter.push({
       name: "agent",
-      resource: generateAgent()
+      resource: generatePractitionerRole()
     });
   }
 

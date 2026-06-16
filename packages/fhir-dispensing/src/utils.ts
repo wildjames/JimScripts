@@ -2,7 +2,17 @@ import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
 import {join} from "path";
 
 import {findNhsNumber} from "nhs-number-utils";
-import type {BundleLike} from "./release.js";
+
+
+export interface BundleLike {
+  resourceType: "Bundle";
+  entry?: Array<{
+    resource?: {
+      resourceType?: string;
+      identifier?: Array<{value?: string}>;
+    };
+  }>;
+}
 
 export function getEnv(name: string): string {
   const value = process.env[name];

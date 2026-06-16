@@ -7,7 +7,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "fhir-create-prescription-bundle": "./dist/cli.js"
+    "create-prescription-bundle": "./dist/cli.js"
   },
   "files": [
     "dist"
@@ -20,7 +20,7 @@
     "commander": "^12.1.0",
     "eps-auth": "^0.1.0",
     "nhs-number-utils": "*",
-    "ods-code-generator": "*",
+    "data-generators": "*",
     "prescription-id-generator": "*"
   },
   "devDependencies": {

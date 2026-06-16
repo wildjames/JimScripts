@@ -1,17 +1,17 @@
 # CLI Tool Inventory
 
-| CLI Command                       | Package                     | Purpose                                                           |
-| --------------------------------- | --------------------------- | ----------------------------------------------------------------- |
-| `generate-nhs-numbers`            | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
-| `generate-ods-codes`              | `ods-code-generator`        | Generate ODS organisation codes                                   |
-| `generate-prescription-ids`       | `prescription-id-generator` | Generate prescription order numbers                               |
-| `fhir-create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
-| `fhir-prescribing`                | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
-| `sign-prescription`               | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
-| `generate-psu-request`            | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
-| `send-psu-request`                | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
-| `send-pfp-request`                | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
-| `make-psu-request`                | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
+| CLI Command                  | Package                     | Purpose                                                           |
+| ---------------------------- | --------------------------- | ----------------------------------------------------------------- |
+| `generate-nhs-numbers`       | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
+| `generate-ods-codes`         | `ods-code-generator`        | Generate ODS organisation codes                                   |
+| `generate-prescription-ids`  | `prescription-id-generator` | Generate prescription order numbers                               |
+| `create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
+| `fhir-prescribing`           | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
+| `sign-prescription`          | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
+| `generate-psu-request`       | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
+| `send-psu-request`           | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
+| `send-pfp-request`           | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
+| `make-psu-request`           | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
 
 ## Data Generation Tools
 
@@ -69,15 +69,15 @@ generate-prescription-ids --ods A12345 -n 3  # Use a fixed ODS code
 
 ## Prescription Bundle Tools
 
-### `fhir-create-prescription-bundle`
+### `create-prescription-bundle`
 
 Creates complete FHIR prescription message bundles.
 
 ```bash
-fhir-create-prescription-bundle
-fhir-create-prescription-bundle --count 3 --nhs-number 9998481732
-fhir-create-prescription-bundle --pharmacy-ods FA565 --practitioner-ods A83008 --count 2
-fhir-create-prescription-bundle --save-dir /tmp/my-prescriptions
+create-prescription-bundle
+create-prescription-bundle --count 3 --nhs-number 9998481732
+create-prescription-bundle --pharmacy-ods FA565 --practitioner-ods A83008 --count 2
+create-prescription-bundle --save-dir /tmp/my-prescriptions
 ```
 
 | Flag                        | Description                         | Default                |

@@ -5,14 +5,15 @@ import {existsSync} from "fs";
 import {Command} from "commander";
 import {config} from "dotenv";
 
-import {generateReleaseParameters, normalizeReleaseParameters} from "./payload.js";
 import {
-  extractReleasedBundle,
-  obtainAppRestrictedToken,
-  obtainUserRestrictedToken,
-  releaseTask
-} from "./release.js";
-import {getEnv, loadParameters, loadPrivateKey, saveBundle} from "./utils.js";
+  obtainAppRestrictedAccessToken,
+  obtainUserRestrictedAccessToken
+} from "eps-auth";
+
+import {generateReleaseParameters, normalizeReleaseParameters} from "./payload.js";
+import {releaseTask} from "./release.js";
+import {returnPrescription, RETURN_REASON_CODES} from "./return.js";
+import {getEnv, loadParameters, loadPrivateKey, saveBundle, BundleLike} from "./utils.js";
 
 const SUPPORTED_ACTIONS = ["release", "return", "dispense", "withdraw", "claim"] as const;
 type DispensingAction = typeof SUPPORTED_ACTIONS[number];
@@ -68,7 +69,15 @@ async function main(): Promise<void> {
       "./data/prescriptions"
     )
     .option("--urid <urid>", "NHSD-Session-URID override")
-    .option("--pharmacy-ods <code>", "Pharmacy ODS code for the release owner");
+    .option("--pharmacy-ods <code>", "Pharmacy ODS code for the release owner")
+    .option(
+      "--reason-code <code>",
+      "Return reason code from EPS-task-dispense-return-status-reason CodeSystem (required for --action return)"
+    )
+    .option(
+      "--reason-text <text>",
+      "Optional human-readable return reason text (overrides the default display for the reason code)"
+    );
 
   program.parse();
   const options = program.opts<{
@@ -79,9 +88,24 @@ async function main(): Promise<void> {
     saveDir: string;
     urid?: string;
     pharmacyOds?: string;
+    reasonCode?: string;
+    reasonText?: string;
   }>();
 
   const action = parseAction(options.action);
+
+  if (action === "return" && !options.reasonCode) {
+    const validCodes = Object.entries(RETURN_REASON_CODES)
+      .map(([code, display]) => `  ${code} - ${display}`)
+      .join("\n");
+    throw new Error(
+      `--reason-code is required for action 'return'. Valid codes:\n${validCodes}`
+    );
+  }
+
+  if (action === "return" && options.appRestricted) {
+    throw new Error("Action 'return' only supports user-restricted authentication");
+  }
 
   if (options.input && !existsSync(options.input)) {
     throw new Error(`Input file not found: ${options.input}`);
@@ -89,15 +113,6 @@ async function main(): Promise<void> {
 
   const host = getEnv("HOST");
   const mode = options.appRestricted ? "unattended" : "attended";
-  const body = options.input
-    ? normalizeReleaseParameters(loadParameters(options.input), options.prescriptionId, {
-      includeAgent: mode === "attended",
-      pharmacyOds: options.pharmacyOds
-    })
-    : generateReleaseParameters(options.prescriptionId, {
-      includeAgent: mode === "attended",
-      pharmacyOds: options.pharmacyOds
-    });
 
   let token: string;
   let urid = options.urid;
@@ -108,7 +123,7 @@ async function main(): Promise<void> {
     const kid = getEnv("DISPENSING_KID");
     const privateKey = loadPrivateKey();
 
-    token = await obtainAppRestrictedToken({
+    token = await obtainAppRestrictedAccessToken({
       host,
       apiKey,
       kid,
@@ -123,12 +138,12 @@ async function main(): Promise<void> {
     }
 
   } else {
-    console.log("Using user-restricted authentication with $release");
+    console.log("Using user-restricted authentication");
     const clientId = getEnv("DISPENSING_API_KEY");
     const clientSecret = getEnv("DISPENSING_APP_CLIENT_SECRET");
     const redirectUri = getEnv("DISPENSING_CALLBACK_URL");
 
-    const authResult = await obtainUserRestrictedToken({
+    const authResult = await obtainUserRestrictedAccessToken({
       host,
       clientId,
       clientSecret,
@@ -143,7 +158,17 @@ async function main(): Promise<void> {
   let result: ActionExecutionResult;
 
   switch (action) {
-    case "release":
+    case "release": {
+      const body = options.input
+        ? normalizeReleaseParameters(loadParameters(options.input), options.prescriptionId, {
+          includeAgent: mode === "attended",
+          pharmacyOds: options.pharmacyOds
+        })
+        : generateReleaseParameters(options.prescriptionId, {
+          includeAgent: mode === "attended",
+          pharmacyOds: options.pharmacyOds
+        });
+
       result = await releaseTask({
         host,
         token,
@@ -153,8 +178,23 @@ async function main(): Promise<void> {
         requestSaveDir: options.saveDir
       });
       break;
+    }
     case "return":
-      throw new Error("Action 'return' is not implemented yet");
+      result = await returnPrescription(
+        {
+          prescriptionId: options.prescriptionId,
+          reasonCode: options.reasonCode!,
+          reasonText: options.reasonText,
+          pharmacyOds: options.pharmacyOds
+        },
+        {
+          host,
+          token,
+          urid,
+          requestSaveDir: options.saveDir
+        }
+      );
+      break;
     case "dispense":
       throw new Error("Action 'dispense' is not implemented yet");
     case "withdraw":
@@ -171,22 +211,18 @@ async function main(): Promise<void> {
 
   if (result.response.status >= 400) {
     console.log(JSON.stringify(result.responseBody, null, 2));
-    throw new Error("Task release request failed");
+    throw new Error(`Task ${action} request failed`);
   }
 
-  const releasedBundle = extractReleasedBundle(result.responseBody);
-  if (!releasedBundle) {
-    throw new Error("Release response did not contain a Bundle resource to save");
-  }
-
-  const outputPath = saveBundle(
-    "release",
-    releasedBundle,
+  const bundlePath = saveBundle(
+    action,
+    result.responseBody as BundleLike,
     options.saveDir,
     options.prescriptionId
   );
-  console.log(outputPath);
+  console.log(bundlePath);
 }
+
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);

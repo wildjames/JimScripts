@@ -2,7 +2,7 @@ import {faker} from "@faker-js/faker";
 import {CIS2_USERS} from "eps-auth";
 import {generateNhsNumber} from "nhs-number-utils";
 import {generatePrescriptionId} from "prescription-id-generator";
-import {generateOdsCode} from "ods-code-generator";
+import {generateOdsCode} from "data-generators";
 
 export {generateNhsNumber, generatePrescriptionId, generateOdsCode};
 

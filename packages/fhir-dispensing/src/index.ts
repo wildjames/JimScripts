@@ -1,13 +1,6 @@
 export {
   releaseTask,
-  extractReleasedBundle,
-  obtainAppRestrictedToken,
-  obtainUserRestrictedToken,
-  type BundleLike,
-  type AppRestrictedReleaseAuthOptions,
-  type UserRestrictedReleaseAuthOptions,
-  type ReleaseTaskOptions,
-  type ReleaseTaskResult
+  type ReleaseTaskOptions
 } from "./release.js";
 
 export {
@@ -15,5 +8,19 @@ export {
   normalizeReleaseParameters,
   type ReleaseParameters
 } from "./payload.js";
+
+export {
+  sendDispensingRequest,
+  type DispensingRequestOptions,
+  type DispensingRequestResult
+} from "./http.js";
+
+export {
+  generateReturnTask,
+  returnPrescription,
+  RETURN_REASON_CODES,
+  type ReturnTaskOptions,
+  type ReturnRequestOptions
+} from "./return.js";
 
 export {getEnv, loadPrivateKey, loadParameters, saveBundle} from "./utils.js";

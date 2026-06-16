@@ -16,7 +16,7 @@ npm run build
 ### As a CLI tool
 
 ```bash
-fhir-create-prescription-bundle [options]
+create-prescription-bundle [options]
 ```
 
 **Options:**
@@ -32,19 +32,19 @@ fhir-create-prescription-bundle [options]
 
 ```bash
 # Generate a single prescription with auto-generated NHS number
-fhir-create-prescription-bundle
+create-prescription-bundle
 
 # Generate 3 prescriptions for a specific patient
-fhir-create-prescription-bundle --count 3 --nhs-number 9998481732
+create-prescription-bundle --count 3 --nhs-number 9998481732
 
 # Specify pharmacy and practitioner ODS codes
-fhir-create-prescription-bundle \
+create-prescription-bundle \
   --pharmacy-ods FA565 \
   --practitioner-ods A83008 \
   --count 2
 
 # Save to a custom directory
-fhir-create-prescription-bundle --save-dir /tmp/my-prescriptions
+create-prescription-bundle --save-dir /tmp/my-prescriptions
 ```
 
 ### As a library
