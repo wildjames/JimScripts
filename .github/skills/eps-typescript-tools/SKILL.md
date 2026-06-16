@@ -25,6 +25,8 @@ For PfP and user-restricted flows:
 make install-playwright
 ```
 
+Note that environment variables are required, but not all need to be set for every command. See [Environment Variables](references/environment-variables.md) for details. Assume that all the required variables are set until errors indicate otherwise.
+
 ## Quick Reference
 
 | CLI Command                       | Purpose                                              |

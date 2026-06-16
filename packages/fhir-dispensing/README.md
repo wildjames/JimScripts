@@ -17,13 +17,19 @@ Generate an attended release request body automatically with fake organisation a
 fhir-dispensing --prescription-id 24F5DA-A83008-7EFE6Z
 ```
 
+Select an action explicitly (currently only `release` is implemented):
+
+```bash
+fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z
+```
+
 Use an optional config JSON as the base payload (the CLI still enforces the prescription ID from `--prescription-id`):
 
 ```bash
 fhir-dispensing --prescription-id 24F5DA-A83008-7EFE6Z --input ./release-parameters.json
 ```
 
-Use unattended release with application-restricted auth:
+Use unattended release with application-restricted auth (not accepted yet, planned for a future FHIR facade release):
 
 ```bash
 fhir-dispensing --prescription-id 24F5DA-A83008-7EFE6Z --app-restricted
@@ -37,12 +43,15 @@ fhir-dispensing --prescription-id 24F5DA-A83008-7EFE6Z --save-dir ./data/prescri
 
 Options:
 
+- `--action <action>`: dispensing action (`release`, `return`, `dispense`, `withdraw`, `claim`); defaults to `release`
 - `--prescription-id <id>`: short-form prescription ID (required)
 - `--input <file>`: optional path to request body JSON (FHIR `Parameters` resource)
 - `--app-restricted`: use application-restricted auth and call `$release-unattended`; omits `agent` from the request body
 - `--pharmacy-ods <code>`: optional owner Organization ODS code override; when the CLI generates or normalizes the request body, this value is applied to the owner Organization in the FHIR `Parameters`
 - `--save-dir <directory>`: directory to save the downloaded Bundle JSON (default: `./data/prescriptions`)
 - `--urid <urid>`: optional `NHSD-Session-URID` override for user-restricted `$release`
+
+If you pass any action other than `release`, the CLI currently exits with a not implemented error. This is intentional groundwork for upcoming dispensing interactions.
 
 On success, the CLI extracts the returned prescription `Bundle` from the EPS `Parameters` response and writes it to disk.
 Output file pattern:

@@ -14,6 +14,26 @@ import {
 } from "./release.js";
 import {getEnv, loadParameters, loadPrivateKey, saveBundle} from "./utils.js";
 
+const SUPPORTED_ACTIONS = ["release", "return", "dispense", "withdraw", "claim"] as const;
+type DispensingAction = typeof SUPPORTED_ACTIONS[number];
+
+function parseAction(action: string): DispensingAction {
+  if (!SUPPORTED_ACTIONS.includes(action as DispensingAction)) {
+    throw new Error(
+      `Unknown action '${action}'. Allowed actions: ${SUPPORTED_ACTIONS.join(", ")}`
+    );
+  }
+
+  return action as DispensingAction;
+}
+
+interface ActionExecutionResult {
+  response: Response;
+  requestId: string;
+  correlationId: string;
+  responseBody: unknown;
+}
+
 async function main(): Promise<void> {
   config();
 
@@ -22,7 +42,12 @@ async function main(): Promise<void> {
   program
     .name("fhir-dispensing")
     .description(
-      "Call EPS FHIR Dispensing Task $release or $release-unattended"
+      "Call EPS FHIR Dispensing actions (release, return, dispense, withdraw, claim)"
+    )
+    .option(
+      "--action <action>",
+      `Dispensing action (${SUPPORTED_ACTIONS.join(", ")})`,
+      "release"
     )
     .requiredOption(
       "--prescription-id <id>",
@@ -47,6 +72,7 @@ async function main(): Promise<void> {
 
   program.parse();
   const options = program.opts<{
+    action: string;
     prescriptionId: string;
     input?: string;
     appRestricted?: boolean;
@@ -54,6 +80,8 @@ async function main(): Promise<void> {
     urid?: string;
     pharmacyOds?: string;
   }>();
+
+  const action = parseAction(options.action);
 
   if (options.input && !existsSync(options.input)) {
     throw new Error(`Input file not found: ${options.input}`);
@@ -112,14 +140,30 @@ async function main(): Promise<void> {
     urid = urid ?? authResult.urid;
   }
 
-  const result = await releaseTask({
-    host,
-    token,
-    body,
-    mode,
-    urid,
-    requestSaveDir: options.saveDir
-  });
+  let result: ActionExecutionResult;
+
+  switch (action) {
+    case "release":
+      result = await releaseTask({
+        host,
+        token,
+        body,
+        mode,
+        urid,
+        requestSaveDir: options.saveDir
+      });
+      break;
+    case "return":
+      throw new Error("Action 'return' is not implemented yet");
+    case "dispense":
+      throw new Error("Action 'dispense' is not implemented yet");
+    case "withdraw":
+      throw new Error("Action 'withdraw' is not implemented yet");
+    case "claim":
+      throw new Error("Action 'claim' is not implemented yet");
+    default:
+      throw new Error(`Unknown action '${action}'`);
+  }
 
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
