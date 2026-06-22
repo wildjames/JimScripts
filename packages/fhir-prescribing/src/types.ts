@@ -62,15 +62,11 @@ export interface CreatePrescriptionUserRestrictedOptions {
 }
 
 export interface CreatePrescriptionResult {
-  digest: string;
-  signature: string;
-  timestamp: string;
   response: {
     status: number;
     statusText: string;
     body: unknown;
   };
-  signedBundle: BundleLike;
   requestId: string;
   correlationId: string;
 }

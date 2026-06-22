@@ -3,7 +3,6 @@ import {preparePrescription} from "./prepare.js";
 import {addProvenanceToBundle} from "./provenance.js";
 import {signDigest} from "./signing.js";
 import type {
-  CreatePrescriptionFlowOptions,
   CreatePrescriptionUserRestrictedOptions,
   CreatePrescriptionResult
 } from "./types.js";
@@ -13,18 +12,13 @@ import type {
 export async function submitPrescriptionWithToken(
   options: CreatePrescriptionUserRestrictedOptions
 ): Promise<CreatePrescriptionResult> {
-  const {host, token, privateKey, bundle, urid, algorithm} = options;
-
-  const {digest, timestamp} = await preparePrescription(host, token, bundle, urid);
-  const signature = signDigest(digest, privateKey, algorithm);
-
-  const signedBundle = addProvenanceToBundle(bundle, digest, signature, timestamp);
+  const {host, token, bundle, urid} = options;
 
   const {response, requestId, correlationId} = await sendFhirRequest({
     host,
     path: "/fhir-prescribing/FHIR/R4/$process-message",
     token,
-    body: signedBundle,
+    body: bundle,
     urid
   });
 
@@ -44,10 +38,6 @@ export async function submitPrescriptionWithToken(
   }
 
   return {
-    digest,
-    signature,
-    timestamp,
-    signedBundle,
     response: {
       status: response.status,
       statusText: response.statusText,

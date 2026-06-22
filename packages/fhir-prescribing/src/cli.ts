@@ -15,7 +15,9 @@ import {
   CANCELLATION_REASON_TYPES,
   SUPPORTED_ACTIONS,
   type BundleLike,
-  type PrescriptionAction
+  type PrescriptionAction,
+  signDigest,
+  addProvenanceToBundle
 } from "./index.js";
 import {getEnv, loadPrivateKey} from "./utils.js";
 import {obtainUserRestrictedAccessToken, type Cis2UserType} from "eps-auth";
@@ -76,11 +78,26 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
     userType
   });
 
+  // If the incoming payload already has a provenance resource, do not replace it, and use the existing one
+  const signedBundle: BundleLike = inputBundle.entry?.some(e => e.resource?.resourceType === "Provenance")
+    ? inputBundle
+    : await (async () => {
+      const {digest, timestamp} = await preparePrescription(host, accessToken, inputBundle, urid);
+      const signature = signDigest(digest, privateKey, options.algorithm);
+
+      return addProvenanceToBundle(inputBundle, digest, signature, timestamp);
+    })();
+
+  // update the file with the signed bundle
+  const signedBundlePath = saveBundle("create", signedBundle, options.saveDir);
+  console.log(`Signed bundle saved to: ${signedBundlePath}`);
+
+  // Submit the signed bundle
   result = await submitPrescriptionWithToken({
     host,
     token: accessToken,
     privateKey,
-    bundle: inputBundle,
+    bundle: signedBundle,
     urid: options.urid ?? urid,
     algorithm: options.algorithm
   });
@@ -94,7 +111,7 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
     throw new Error("Prescription submission failed");
   }
 
-  const outputPath = saveBundle("create", result.signedBundle, options.saveDir);
+  const outputPath = saveBundle("create", signedBundle, options.saveDir);
   console.log(outputPath);
 }
 
@@ -169,18 +186,16 @@ async function handleSign(options: {input: string; urid?: string; algorithm?: st
     const {digest, timestamp} = await preparePrescription(host, token, bundle, resolvedUrid);
     console.log(JSON.stringify({digest, timestamp}, null, 2));
   } else {
-    const result = await prepareAndSign(
-      host,
-      token,
-      bundle,
-      privateKey,
-      resolvedUrid,
-      options.algorithm
-    );
+    const {digest, timestamp} = await preparePrescription(host, token, bundle);
+    const signature = signDigest(digest, privateKey, options.algorithm);
+    const signedBundle = addProvenanceToBundle(bundle, digest, signature, timestamp);
 
-    console.log("Digest:", result.digest);
-    console.log("Signature:", result.signature);
-    console.log("Timestamp:", result.timestamp);
+    console.log("Digest:", digest);
+    console.log("Signature:", signature);
+    console.log("Timestamp:", timestamp);
+
+    const outputPath = saveBundle("sign", signedBundle, "./data/prescriptions");
+    console.log(`Signed bundle saved to: ${outputPath}`);
   }
 }
 
