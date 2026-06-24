@@ -90,7 +90,7 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
 
   // update the file with the signed bundle
   const signedBundlePath = saveBundle("create", signedBundle, options.saveDir);
-  console.log(`Signed bundle saved to: ${signedBundlePath}`);
+  console.log(`Signed bundle (which will be submitted to the FHIR Facade) saved to: ${signedBundlePath}`);
 
   // Submit the signed bundle
   result = await submitPrescriptionWithToken({
@@ -111,8 +111,8 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
     throw new Error("Prescription submission failed");
   }
 
-  const outputPath = saveBundle("create", signedBundle, options.saveDir);
-  console.log(outputPath);
+  const outputPath = saveBundle("create", result.response.body as BundleLike, options.saveDir);
+  console.log(`Response bundle saved to: ${outputPath}`);
 }
 
 async function handleCancel(options: {

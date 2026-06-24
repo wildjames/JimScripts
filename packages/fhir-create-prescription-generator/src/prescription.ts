@@ -84,6 +84,8 @@ function buildMedicationRequests(
   prescriptionId: string
 ): any[] {
   const requests: any[] = [];
+  const firstMed = SAMPLE_MEDICATIONS[0];
+  const supplyDurationDays = firstMed.period * firstMed.frequency;
 
   for (let i = 0; i < count; i++) {
     const med = SAMPLE_MEDICATIONS[i % SAMPLE_MEDICATIONS.length];
@@ -191,7 +193,7 @@ function buildMedicationRequests(
             code: "428673006",
           },
           expectedSupplyDuration: {
-            value: med.period * med.frequency,
+            value: supplyDurationDays,
             unit: "day",
             system: "http://unitsofmeasure.org",
             code: "d",

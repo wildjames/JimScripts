@@ -13,6 +13,7 @@ import {
 import {generateReleaseParameters, normalizeReleaseParameters} from "./payload.js";
 import {releaseTask} from "./release.js";
 import {returnPrescription, RETURN_REASON_CODES} from "./return.js";
+import {dispenseNotification, DISPENSE_TYPE_CODES} from "./dispense.js";
 import {getEnv, loadParameters, loadPrivateKey, saveBundle, BundleLike} from "./utils.js";
 
 const SUPPORTED_ACTIONS = ["release", "return", "dispense", "withdraw", "claim"] as const;
@@ -77,6 +78,15 @@ async function main(): Promise<void> {
     .option(
       "--reason-text <text>",
       "Optional human-readable return reason text (overrides the default display for the reason code)"
+    )
+    .option(
+      "--reimbursement-authority <code>",
+      "Reimbursement authority ODS code (for dispense action)"
+    )
+    .option(
+      "--dispense-type <code>",
+      "Dispense type code from medicationdispense-type CodeSystem (default: 0001 = Item fully dispensed)",
+      "0001"
     );
 
   program.parse();
@@ -90,6 +100,8 @@ async function main(): Promise<void> {
     pharmacyOds?: string;
     reasonCode?: string;
     reasonText?: string;
+    reimbursementAuthority?: string;
+    dispenseType?: string;
   }>();
 
   const action = parseAction(options.action);
@@ -180,6 +192,9 @@ async function main(): Promise<void> {
       break;
     }
     case "return":
+      if (options.appRestricted) {
+        throw new Error("Action 'dispense' only supports user-restricted authentication");
+      }
       result = await returnPrescription(
         {
           prescriptionId: options.prescriptionId,
@@ -195,8 +210,31 @@ async function main(): Promise<void> {
         }
       );
       break;
-    case "dispense":
-      throw new Error("Action 'dispense' is not implemented yet");
+    case "dispense": {
+      if (!options.input) {
+        throw new Error("--input is required for action 'dispense' (path to released prescription bundle)");
+      }
+      if (options.appRestricted) {
+        throw new Error("Action 'dispense' only supports user-restricted authentication");
+      }
+      const inputBundle = loadParameters(options.input) as Record<string, unknown> & {resourceType: "Bundle"};
+      result = await dispenseNotification(
+        inputBundle as Parameters<typeof dispenseNotification>[0],
+        {
+          prescriptionId: options.prescriptionId,
+          pharmacyOds: options.pharmacyOds,
+          reimbursementAuthority: options.reimbursementAuthority,
+          dispenseType: options.dispenseType
+        },
+        {
+          host,
+          token,
+          urid,
+          requestSaveDir: options.saveDir
+        }
+      );
+      break;
+    }
     case "withdraw":
       throw new Error("Action 'withdraw' is not implemented yet");
     case "claim":

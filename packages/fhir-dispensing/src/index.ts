@@ -23,4 +23,12 @@ export {
   type ReturnRequestOptions
 } from "./return.js";
 
+export {
+  generateDispenseNotificationBundle,
+  dispenseNotification,
+  DISPENSE_TYPE_CODES,
+  type DispenseNotificationOptions,
+  type DispenseRequestOptions
+} from "./dispense.js";
+
 export {getEnv, loadPrivateKey, loadParameters, saveBundle} from "./utils.js";
