@@ -1,28 +1,43 @@
 #!/usr/bin/env node
 
-import {existsSync} from "fs";
+import { existsSync } from "fs";
 
-import {Command} from "commander";
-import {config} from "dotenv";
+import { Command } from "commander";
+import { config } from "dotenv";
 
 import {
   obtainAppRestrictedAccessToken,
-  obtainUserRestrictedAccessToken
+  obtainUserRestrictedAccessToken,
 } from "eps-auth";
 
-import {generateReleaseParameters, normalizeReleaseParameters} from "./payload.js";
-import {releaseTask} from "./release.js";
-import {returnPrescription, RETURN_REASON_CODES} from "./return.js";
-import {dispenseNotification, DISPENSE_TYPE_CODES} from "./dispense.js";
-import {getEnv, loadParameters, loadPrivateKey, saveBundle, BundleLike} from "./utils.js";
+import {
+  generateReleaseParameters,
+  normalizeReleaseParameters,
+} from "./payload.js";
+import { releaseTask } from "./release.js";
+import { returnPrescription, RETURN_REASON_CODES } from "./return.js";
+import { dispenseNotification, DISPENSE_TYPE_CODES } from "./dispense.js";
+import {
+  getEnv,
+  loadParameters,
+  loadPrivateKey,
+  saveBundle,
+  BundleLike,
+} from "./utils.js";
 
-const SUPPORTED_ACTIONS = ["release", "return", "dispense", "withdraw", "claim"] as const;
-type DispensingAction = typeof SUPPORTED_ACTIONS[number];
+const SUPPORTED_ACTIONS = [
+  "release",
+  "return",
+  "dispense",
+  "withdraw",
+  "claim",
+] as const;
+type DispensingAction = (typeof SUPPORTED_ACTIONS)[number];
 
 function parseAction(action: string): DispensingAction {
   if (!SUPPORTED_ACTIONS.includes(action as DispensingAction)) {
     throw new Error(
-      `Unknown action '${action}'. Allowed actions: ${SUPPORTED_ACTIONS.join(", ")}`
+      `Unknown action '${action}'. Allowed actions: ${SUPPORTED_ACTIONS.join(", ")}`,
     );
   }
 
@@ -44,55 +59,55 @@ async function main(): Promise<void> {
   program
     .name("fhir-dispensing")
     .description(
-      "Call EPS FHIR Dispensing actions (release, return, dispense, withdraw, claim)"
+      "Call EPS FHIR Dispensing actions (release, return, dispense, withdraw, claim)",
     )
     .option(
       "--action <action>",
       `Dispensing action (${SUPPORTED_ACTIONS.join(", ")})`,
-      "release"
+      "release",
     )
-    .requiredOption(
+    .option(
       "--prescription-id <id>",
-      "EPS prescription group identifier (short-form prescription ID)"
+      "EPS prescription group identifier (short-form prescription ID)",
     )
     .option(
       "--input <file>",
-      "Optional path to a Parameters JSON request body; if omitted a fake request is generated"
+      "Optional path to a Parameters JSON request body; if omitted a fake request is generated",
     )
     .option(
       "--app-restricted",
       "Use application-restricted auth and call $release-unattended (default is user-restricted $release)",
-      false
+      false,
     )
     .option(
       "--save-dir <directory>",
       "Directory to save the downloaded Bundle JSON",
-      "./data/prescriptions"
+      "./data/prescriptions",
     )
     .option("--urid <urid>", "NHSD-Session-URID override")
     .option("--pharmacy-ods <code>", "Pharmacy ODS code for the release owner")
     .option(
       "--reason-code <code>",
-      "Return reason code from EPS-task-dispense-return-status-reason CodeSystem (required for --action return)"
+      "Return reason code from EPS-task-dispense-return-status-reason CodeSystem (required for --action return)",
     )
     .option(
       "--reason-text <text>",
-      "Optional human-readable return reason text (overrides the default display for the reason code)"
+      "Optional human-readable return reason text (overrides the default display for the reason code)",
     )
     .option(
       "--reimbursement-authority <code>",
-      "Reimbursement authority ODS code (for dispense action)"
+      "Reimbursement authority ODS code (for dispense action)",
     )
     .option(
       "--dispense-type <code>",
       "Dispense type code from medicationdispense-type CodeSystem (default: 0001 = Item fully dispensed)",
-      "0001"
+      "0001",
     );
 
   program.parse();
   const options = program.opts<{
     action: string;
-    prescriptionId: string;
+    prescriptionId?: string;
     input?: string;
     appRestricted?: boolean;
     saveDir: string;
@@ -106,17 +121,28 @@ async function main(): Promise<void> {
 
   const action = parseAction(options.action);
 
+  if (
+    !options.prescriptionId &&
+    !(action === "release" && options.appRestricted)
+  ) {
+    throw new Error(
+      "--prescription-id is required unless using --app-restricted with release action",
+    );
+  }
+
   if (action === "return" && !options.reasonCode) {
     const validCodes = Object.entries(RETURN_REASON_CODES)
       .map(([code, display]) => `  ${code} - ${display}`)
       .join("\n");
     throw new Error(
-      `--reason-code is required for action 'return'. Valid codes:\n${validCodes}`
+      `--reason-code is required for action 'return'. Valid codes:\n${validCodes}`,
     );
   }
 
   if (action === "return" && options.appRestricted) {
-    throw new Error("Action 'return' only supports user-restricted authentication");
+    throw new Error(
+      "Action 'return' only supports user-restricted authentication",
+    );
   }
 
   if (options.input && !existsSync(options.input)) {
@@ -130,7 +156,9 @@ async function main(): Promise<void> {
   let urid = options.urid;
 
   if (options.appRestricted) {
-    console.log("Using application-restricted authentication with $release-unattended");
+    console.log(
+      "Using application-restricted authentication with $release-unattended",
+    );
     const apiKey = getEnv("DISPENSING_API_KEY");
     const kid = getEnv("DISPENSING_KID");
     const privateKey = loadPrivateKey();
@@ -139,7 +167,7 @@ async function main(): Promise<void> {
       host,
       apiKey,
       kid,
-      privateKey
+      privateKey,
     });
 
     console.log("Got access token for app-restricted auth");
@@ -148,7 +176,6 @@ async function main(): Promise<void> {
       console.log("Ignoring NHSD-Session-URID for $release-unattended");
       urid = undefined;
     }
-
   } else {
     console.log("Using user-restricted authentication");
     const clientId = getEnv("DISPENSING_API_KEY");
@@ -160,7 +187,7 @@ async function main(): Promise<void> {
       clientId,
       clientSecret,
       redirectUri,
-      userType: "dispenser"
+      userType: "dispenser",
     });
 
     token = authResult.accessToken;
@@ -172,14 +199,20 @@ async function main(): Promise<void> {
   switch (action) {
     case "release": {
       const body = options.input
-        ? normalizeReleaseParameters(loadParameters(options.input), options.prescriptionId, {
-          includeAgent: mode === "attended",
-          pharmacyOds: options.pharmacyOds
-        })
+        ? normalizeReleaseParameters(
+            loadParameters(options.input),
+            options.prescriptionId,
+            {
+              includeAgent: mode === "attended",
+              pharmacyOds: options.pharmacyOds,
+              includeGroupIdentifier: mode === "attended",
+            },
+          )
         : generateReleaseParameters(options.prescriptionId, {
-          includeAgent: mode === "attended",
-          pharmacyOds: options.pharmacyOds
-        });
+            includeAgent: mode === "attended",
+            pharmacyOds: options.pharmacyOds,
+            includeGroupIdentifier: mode === "attended",
+          });
 
       result = await releaseTask({
         host,
@@ -187,51 +220,60 @@ async function main(): Promise<void> {
         body,
         mode,
         urid,
-        requestSaveDir: options.saveDir
+        requestSaveDir: options.saveDir,
       });
       break;
     }
     case "return":
       if (options.appRestricted) {
-        throw new Error("Action 'dispense' only supports user-restricted authentication");
+        throw new Error(
+          "Action 'dispense' only supports user-restricted authentication",
+        );
       }
       result = await returnPrescription(
         {
-          prescriptionId: options.prescriptionId,
+          prescriptionId: options.prescriptionId!,
           reasonCode: options.reasonCode!,
           reasonText: options.reasonText,
-          pharmacyOds: options.pharmacyOds
+          pharmacyOds: options.pharmacyOds,
         },
         {
           host,
           token,
           urid,
-          requestSaveDir: options.saveDir
-        }
+          requestSaveDir: options.saveDir,
+        },
       );
       break;
     case "dispense": {
       if (!options.input) {
-        throw new Error("--input is required for action 'dispense' (path to released prescription bundle)");
+        throw new Error(
+          "--input is required for action 'dispense' (path to released prescription bundle)",
+        );
       }
       if (options.appRestricted) {
-        throw new Error("Action 'dispense' only supports user-restricted authentication");
+        throw new Error(
+          "Action 'dispense' only supports user-restricted authentication",
+        );
       }
-      const inputBundle = loadParameters(options.input) as Record<string, unknown> & {resourceType: "Bundle"};
+      const inputBundle = loadParameters(options.input) as Record<
+        string,
+        unknown
+      > & { resourceType: "Bundle" };
       result = await dispenseNotification(
         inputBundle as Parameters<typeof dispenseNotification>[0],
         {
-          prescriptionId: options.prescriptionId,
+          prescriptionId: options.prescriptionId!,
           pharmacyOds: options.pharmacyOds,
           reimbursementAuthority: options.reimbursementAuthority,
-          dispenseType: options.dispenseType
+          dispenseType: options.dispenseType,
         },
         {
           host,
           token,
           urid,
-          requestSaveDir: options.saveDir
-        }
+          requestSaveDir: options.saveDir,
+        },
       );
       break;
     }
@@ -245,7 +287,9 @@ async function main(): Promise<void> {
 
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
-  console.log(`Response: ${result.response.status} ${result.response.statusText}`);
+  console.log(
+    `Response: ${result.response.status} ${result.response.statusText}`,
+  );
 
   if (result.response.status >= 400) {
     console.log(JSON.stringify(result.responseBody, null, 2));
@@ -256,11 +300,10 @@ async function main(): Promise<void> {
     action,
     result.responseBody as BundleLike,
     options.saveDir,
-    options.prescriptionId
+    options.prescriptionId ?? "no-prescription-id",
   );
   console.log(bundlePath);
 }
-
 
 main().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
