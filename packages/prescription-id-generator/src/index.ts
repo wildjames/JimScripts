@@ -4,21 +4,24 @@
  * Format: [6 alphanumeric]-[ODS]-[5 alphanumeric][check digit]
  */
 
-import {generateOdsCode} from "data-generators";
+import { generateOdsCode } from "data-generators";
 
-const PRESCRIPTION_ID_CHECK_DIGIT_VALUES = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
+const PRESCRIPTION_ID_CHECK_DIGIT_VALUES =
+  "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ+";
 const ALPHANUM = "ABCDEF0123456789";
 
 function randomChoice(chars: string): string {
   return chars[Math.floor(Math.random() * chars.length)];
 }
 
-export {generateOdsCode};
+export { generateOdsCode };
 
 /**
  * Compute the prescription ID check digit for a formatted ID (without the final check digit).
  */
-export function computePrescriptionIdCheckDigit(prescriptionId: string): string {
+export function computePrescriptionIdCheckDigit(
+  prescriptionId: string,
+): string {
   let total = 0;
   const chars = prescriptionId.replace(/-/g, "");
 
@@ -45,7 +48,9 @@ export function computePrescriptionIdCheckDigit(prescriptionId: string): string 
  * If the ODS code is shorter than 6 characters, it will be padded with zeros. If it's longer, it will be truncated.
  */
 export function generatePrescriptionId(odsCode?: string): string {
-  const core = Array.from({length: 11}, () => randomChoice(ALPHANUM)).join("");
+  const core = Array.from({ length: 11 }, () => randomChoice(ALPHANUM)).join(
+    "",
+  );
   const resolvedOds = odsCode ?? generateOdsCode(6);
 
   // ODS code should be trimmed or padded to 6 characters
@@ -53,10 +58,11 @@ export function generatePrescriptionId(odsCode?: string): string {
   if (resolvedOds.length > 6) {
     paddedOds = resolvedOds.slice(0, 6);
   } else if (resolvedOds.length < 6) {
-    console.log(`ODS code '${resolvedOds}' is shorter than 6 characters, padding with zeros.`);
+    console.log(
+      `ODS code '${resolvedOds}' is shorter than 6 characters, padding with zeros.`,
+    );
     paddedOds = resolvedOds.padEnd(6, "0");
   }
-  console.log(`Using ODS code: ${paddedOds}`);
 
   const formatted = `${core.slice(0, 6)}-${paddedOds}-${core.slice(6)}`;
   const checkDigit = computePrescriptionIdCheckDigit(formatted);
