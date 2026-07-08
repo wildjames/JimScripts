@@ -4,10 +4,11 @@ Utilities for NHS EPS testing and message generation, including:
 
 - NHS number, ODS code, and prescription ID generation
 - FHIR prescription bundle generation, signing, submission, and cancellation
+- FHIR dispensing: release, return, and dispense-notification
 - PSU generation and submission
 - PfP retrieval and PfP-to-PSU interactive workflows
 
-This repository is an npm workspace monorepo with one TypeScript package per tool. All cli tools have a `-h` option to print their usage.
+This repository is an npm workspace monorepo with one TypeScript package per tool. All CLI tools have a `-h` option to print their usage.
 
 ## Setup
 
@@ -19,46 +20,65 @@ make build
 make link
 ```
 
-For PfP and user-restricted browser login flows, install Playwright browsers:
+Playwright browsers are installed automatically as part of `make build`. To reinstall manually:
 
 ```bash
 make install-playwright
-# or: cd packages && npx playwright install
 ```
 
 ## Available CLI Commands
 
-- `generate-nhs-numbers`
-- `generate-ods-codes`
-- `generate-prescription-ids`
-- `create-prescription-bundle`
-- `fhir-dispensing`
-- `fhir-prescribing`
-- `sign-prescription`
-- `generate-psu-request`
-- `send-psu-request`
-- `send-pfp-request`
-- `make-psu-request`
+| Command | Description |
+|---|---|
+| `generate-nhs-numbers` | Generate/validate NHS numbers |
+| `generate-data` | Generate ODS codes, FHIR Organizations, PractitionerRoles |
+| `generate-prescription-ids` | Generate prescription order numbers |
+| `create-prescription-bundle` | Create FHIR prescription message bundles |
+| `fhir-prescribing` | Create, cancel, and sign prescriptions (user-restricted auth) |
+| `fhir-dispensing` | Release, return, and dispense prescriptions |
+| `generate-psu-request` | Generate PSU FHIR bundles |
+| `send-psu-request` | Send PSU bundles to the PSU API endpoint |
+| `send-pfp-request` | Fetch Prescriptions-for-Patients bundles via OAuth2 |
+| `psu-wizard` | Interactive wizard combining PfP fetch and PSU generation/sending |
 
-## Quick Start: create, update, cancel
+## Quick Start: create, release, dispense
 
-This is an example end-to-end flow for a single test prescription:
+End-to-end flow for a single test prescription:
 
 1. Generate a prescription bundle
-2. Create the prescription in the FHIR facade, with the `fhir-prescribing` tool
-3. Send a PSU update with business status `With Pharmacy`
-4. Cancel the prescription with the FHIR facade
-
-Notes:
-
-- PSU updates represent status and can be submitted whether or not the prescription was previously created on the server.
-- This flow still performs create first, then PSU, then cancel.
+2. Create the prescription via `fhir-prescribing`
+3. Release the prescription via `fhir-dispensing`
+4. Send a dispense-notification via `fhir-dispensing`
 
 ```bash
 # 1) Generate one prescription bundle
 create-prescription-bundle --count 1
 
 # Resolve the newest generated bundle file
+BUNDLE_FILE="$(ls -1t data/prescriptions/prescription-bundle_* | head -n 1)"
+
+# 2) Create (prepare, sign, submit)
+fhir-prescribing --action create --input "$BUNDLE_FILE"
+
+# Extract the prescription ID from the create response
+CREATE_RESPONSE="$(ls -1t data/prescriptions/*_create_response.json | head -n 1)"
+PRESCRIPTION_ID="$(jq -r '.entry[].resource | select(.resourceType=="MedicationRequest") | .groupIdentifier.value' "$CREATE_RESPONSE" | head -1)"
+
+# 3) Release the prescription
+fhir-dispensing --action release --prescription-id "$PRESCRIPTION_ID"
+
+# Resolve the release bundle
+RELEASE_BUNDLE="$(ls -1t data/prescriptions/release-bundle_* | head -n 1)"
+
+# 4) Send dispense-notification
+fhir-dispensing --action dispense --prescription-id "$PRESCRIPTION_ID" --input "$RELEASE_BUNDLE"
+```
+
+## Quick Start: create, PSU update, cancel
+
+```bash
+# 1) Generate one prescription bundle
+create-prescription-bundle --count 1
 BUNDLE_FILE="$(ls -1t data/prescriptions/prescription-bundle_* | head -n 1)"
 
 # 2) Create (prepare, sign, submit)
@@ -75,17 +95,24 @@ send-psu-request --input /tmp/psu-with-pharmacy.json
 fhir-prescribing --action cancel --input "$BUNDLE_FILE"
 ```
 
-## Quick start: Tool usage
+## Tool Usage
 
-### 1) Generate test identifiers
+### Generate test identifiers
 
 ```bash
 generate-nhs-numbers -n 10
-generate-ods-codes -n 5
+generate-data --type ods -n 5
 generate-prescription-ids -n 3
 ```
 
-### 2) Create a prescription bundle
+### Generate test FHIR resources
+
+```bash
+generate-data --type organization
+generate-data --type practitioner-role -n 3
+```
+
+### Create a prescription bundle
 
 ```bash
 create-prescription-bundle --nhs-number 9998481732 --count 2
@@ -97,117 +124,130 @@ Output file pattern:
 ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
 ```
 
-### 3) Create (prepare, sign, submit) a prescription
+### Create (prepare, sign, submit) a prescription
 
 ```bash
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
 ```
 
-Output file pattern:
+Output files:
 
 ```text
-./data/prescriptions/create-bundle_<timestamp>_nhs-num-<number>.json
+./data/prescriptions/<timestamp>_create_request.json
+./data/prescriptions/<timestamp>_create_response.json
 ```
 
-### 4) Cancel an existing prescription
+### Cancel an existing prescription
 
 ```bash
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
-fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json --cancel-reason-type 0003
+fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 ```
 
-Output file pattern:
+Output files:
 
 ```text
-./data/prescriptions/cancel-bundle_<timestamp>_nhs-num-<number>.json
+./data/prescriptions/<timestamp>_cancel_request.json
+./data/prescriptions/<timestamp>_cancel_response.json
 ```
 
-### 5) Prepare/sign only
+### Prepare and sign only
 
 ```bash
-sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
-sign-prescription --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json --prepare-only
+fhir-prescribing --action sign --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-<number>.json
+fhir-prescribing --action sign --input ./bundle.json --prepare-only
 ```
 
-### 6) Generate and send a PSU request
+### Release a prescription
+
+```bash
+fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z
+fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z --app-restricted
+```
+
+### Return a prescription
+
+```bash
+fhir-dispensing --action return --prescription-id 24F5DA-A83008-7EFE6Z --reason-code 0001
+```
+
+### Send a dispense-notification
+
+```bash
+fhir-dispensing --action dispense --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/release-bundle_*.json
+```
+
+### Generate and send a PSU request
 
 ```bash
 generate-psu-request --business-status "With Pharmacy" -o psu.json
 send-psu-request --input psu.json
 ```
 
-### 7) PfP to PSU interactive workflow
+### PfP to PSU interactive workflow
 
 ```bash
-make-psu-request --nhs-number 9991234567 --send
+psu-wizard --nhs-number 9991234567 --send
 ```
 
 ## Environment Variables
 
 ### Shared
 
-- `HOST`
+- `HOST` — API host (e.g. `internal-dev.api.service.nhs.uk`)
 
-### fhir-prescribing and sign-prescription (app-restricted)
+### fhir-prescribing (user-restricted)
 
-- `PRESCRIBE_API_KEY`
-- `PRESCRIBE_KID`
+- `PRESCRIBE_API_KEY` — OAuth client ID
+- `PRESCRIBE_APP_CLIENT_SECRET` — OAuth client secret
+- `PRESCRIBE_CALLBACK_URL` — OAuth callback URL
 - one of:
-  - `PRESCRIBE_PRIVATE_KEY`
-  - `PRESCRIBE_PRIVATE_KEY_PATH`
+  - `PRESCRIBE_PRIVATE_KEY` — PEM private key contents for digest signing
+  - `PRESCRIBE_PRIVATE_KEY_PATH` — path to PEM file
+- optional:
+  - `HEADLESS` — set `false` to show browser during login
+  - `FIREFOX_TMP_DIR` — browser profile directory
 
-### fhir-prescribing and sign-prescription (user-restricted)
+### fhir-dispensing (user-restricted, default)
 
-- `PRESCRIBE_API_KEY`
-- `PRESCRIBE_APP_CLIENT_SECRET`
-- `PRESCRIBE_CALLBACK_URL`
-- one of:
-  - `PRESCRIBE_PRIVATE_KEY`
-  - `PRESCRIBE_PRIVATE_KEY_PATH`
+- `DISPENSING_API_KEY` — OAuth client ID
+- `DISPENSING_APP_CLIENT_SECRET` — OAuth client secret
+- `DISPENSING_CALLBACK_URL` — OAuth callback URL
 - optional:
   - `HEADLESS`
   - `FIREFOX_TMP_DIR`
 
-### fhir-dispensing (default user-restricted)
+### fhir-dispensing (app-restricted, `--app-restricted`)
 
-- `DISPENSING_API_KEY`
-- `DISPENSING_KID`
+- `DISPENSING_API_KEY` — APIM application API key
+- `DISPENSING_KID` — Key ID from APIM portal
 - one of:
   - `DISPENSING_PRIVATE_KEY`
   - `DISPENSING_PRIVATE_KEY_PATH`
 
-### fhir-dispensing (app-restricted)
+### send-psu-request and psu-wizard
 
-- `DISPENSING_API_KEY`
-- `DISPENSING_APP_CLIENT_SECRET`
-- `DISPENSING_CALLBACK_URL`
-- optional:
-  - `HEADLESS`
-  - `FIREFOX_TMP_DIR`
-
-### send-psu-request and make-psu-request
-
-- `API_KEY`
-- `PSU_KID`
+- `PSU_API_KEY` — APIM application API key
+- `PSU_KID` — Key ID from APIM portal
 - one of:
-  - `PRIVATE_KEY`
-  - `PSU_PRIVATE_KEY_PATH`
+  - `PSU_PRIVATE_KEY` — PEM private key contents
+  - `PSU_PRIVATE_KEY_PATH` — path to PEM file
 - optional:
-  - `IS_PR`
-  - `PR_NUMBER`
+  - `IS_PR` — set to `true` to target a PR sandbox URL
+  - `PR_NUMBER` — PR number when `IS_PR=true`
 
-### send-pfp-request and make-psu-request
+### send-pfp-request and psu-wizard
 
-- `PFP_API_KEY`
-- `PFP_CLIENT_SECRET`
+- `PFP_API_KEY` — OAuth client ID
+- `PFP_CLIENT_SECRET` — OAuth client secret
 - optional:
-  - `REDIRECT_URI`
-  - `AUTH_USERNAME`
+  - `REDIRECT_URI` — OAuth redirect URI
+  - `AUTH_USERNAME` — Mock NHS login username
   - `HEADLESS`
   - `FIREFOX_TMP_DIR`
 
 ## Default Data Directories
 
-- `./data/prescriptions`: prescription bundles and cancellation bundles
-- `./data/psu_requests`: PSU requests and PfP responses
-- `./data/keys`: JWKS key material
+- `./data/prescriptions` — prescription bundles, release bundles, and cancellation bundles
+- `./data/psu_requests` — PSU requests and PfP responses
+- `./data/keys` — JWKS key material
