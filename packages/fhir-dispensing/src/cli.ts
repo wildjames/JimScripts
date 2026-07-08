@@ -21,7 +21,7 @@ import {
   getEnv,
   loadParameters,
   loadPrivateKey,
-  saveBundle,
+  saveResponse,
   BundleLike,
 } from "./utils.js";
 
@@ -296,11 +296,10 @@ async function main(): Promise<void> {
     throw new Error(`Task ${action} request failed`);
   }
 
-  const bundlePath = saveBundle(
+  const bundlePath = saveResponse(
     action,
     result.responseBody as BundleLike,
     options.saveDir,
-    options.prescriptionId ?? "no-prescription-id",
   );
   console.log(bundlePath);
 }

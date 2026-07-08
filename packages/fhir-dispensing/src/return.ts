@@ -1,8 +1,12 @@
-import {randomUUID} from "crypto";
+import { randomUUID } from "crypto";
 
-import {generateOdsCode, generateOrganization, generatePractitionerRole} from "data-generators";
+import {
+  generateOdsCode,
+  generateOrganization,
+  generatePractitionerRole,
+} from "data-generators";
 
-import {sendDispensingRequest, type DispensingRequestResult} from "./http.js";
+import { sendDispensingRequest, type DispensingRequestResult } from "./http.js";
 
 /**
  * Valid reason codes from EPS-task-dispense-return-status-reason CodeSystem.
@@ -17,7 +21,7 @@ export const RETURN_REASON_CODES: Record<string, string> = {
   "0006": "Prescription expired",
   "0007": "Prescription cancelled",
   "0008": "Prescription not found",
-  "0009": "Prescription item was not available"
+  "0009": "Prescription item was not available",
 };
 
 export interface ReturnTaskOptions {
@@ -34,10 +38,12 @@ export interface ReturnRequestOptions {
   requestSaveDir?: string;
 }
 
-function generateContainedResources(pharmacyOds?: string): Array<Record<string, unknown>> {
+function generateContainedResources(
+  pharmacyOds?: string,
+): Array<Record<string, unknown>> {
   const practitionerRole = generatePractitionerRole({
     id: "requester",
-    sdsJobRoleCode: "S0030:G0100:R0620"
+    sdsJobRoleCode: "S0030:G0100:R0620",
   });
 
   const organization = generateOrganization(pharmacyOds);
@@ -46,19 +52,22 @@ function generateContainedResources(pharmacyOds?: string): Array<Record<string, 
   return [
     {
       ...practitionerRole,
-      organization: {reference: "#organization"}
+      organization: { reference: "#organization" },
     },
     {
       ...organization,
-      id: "organization"
-    }
+      id: "organization",
+    },
   ];
 }
 
-export function generateReturnTask(options: ReturnTaskOptions): Record<string, unknown> {
-  const reasonDisplay = options.reasonText
-    ?? RETURN_REASON_CODES[options.reasonCode]
-    ?? `Return reason ${options.reasonCode}`;
+export function generateReturnTask(
+  options: ReturnTaskOptions,
+): Record<string, unknown> {
+  const reasonDisplay =
+    options.reasonText ??
+    RETURN_REASON_CODES[options.reasonCode] ??
+    `Return reason ${options.reasonCode}`;
 
   const taskId = randomUUID();
 
@@ -69,18 +78,19 @@ export function generateReturnTask(options: ReturnTaskOptions): Record<string, u
     identifier: [
       {
         system: "https://tools.ietf.org/html/rfc4122",
-        value: taskId
-      }
+        value: taskId,
+      },
     ],
     status: "rejected",
     statusReason: {
       coding: [
         {
-          system: "https://fhir.nhs.uk/CodeSystem/EPS-task-dispense-return-status-reason",
+          system:
+            "https://fhir.nhs.uk/CodeSystem/EPS-task-dispense-return-status-reason",
           code: options.reasonCode,
-          display: reasonDisplay
-        }
-      ]
+          display: reasonDisplay,
+        },
+      ],
     },
     intent: "order",
     code: {
@@ -88,46 +98,48 @@ export function generateReturnTask(options: ReturnTaskOptions): Record<string, u
         {
           system: "http://hl7.org/fhir/CodeSystem/task-code",
           code: "fulfill",
-          display: "Fulfill the focal request"
-        }
-      ]
+          display: "Fulfill the focal request",
+        },
+      ],
     },
     groupIdentifier: {
       system: "https://fhir.nhs.uk/Id/prescription-order-number",
-      value: options.prescriptionId
+      value: options.prescriptionId,
     },
     authoredOn: new Date().toISOString(),
     focus: {
       identifier: {
         system: "https://tools.ietf.org/html/rfc4122",
-        value: randomUUID()
-      }
+        value: randomUUID(),
+      },
     },
     for: {
       identifier: {
         system: "https://fhir.nhs.uk/Id/nhs-number",
-        value: "0000000000"
-      }
+        value: "0000000000",
+      },
     },
     requester: {
-      reference: "#requester"
+      reference: "#requester",
     },
     owner: {
       identifier: {
         system: "https://fhir.nhs.uk/Id/ods-organization-code",
-        value: options.pharmacyOds ?? generateOdsCode(5)
-      }
-    }
+        value: options.pharmacyOds ?? generateOdsCode(5),
+      },
+    },
   };
 }
 
 export async function returnPrescription(
   taskOptions: ReturnTaskOptions,
-  requestOptions: ReturnRequestOptions
+  requestOptions: ReturnRequestOptions,
 ): Promise<DispensingRequestResult> {
   const body = generateReturnTask(taskOptions);
 
-  console.log(`Returning prescription ${taskOptions.prescriptionId} with reason code ${taskOptions.reasonCode}`);
+  console.log(
+    `Returning prescription ${taskOptions.prescriptionId} with reason code ${taskOptions.reasonCode}`,
+  );
 
   return sendDispensingRequest({
     host: requestOptions.host,
@@ -136,6 +148,6 @@ export async function returnPrescription(
     body,
     urid: requestOptions.urid,
     requestSaveDir: requestOptions.requestSaveDir,
-    requestFilePrefix: "return-request"
+    action: "return",
   });
 }

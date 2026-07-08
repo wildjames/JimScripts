@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 
-import {Command} from "commander";
-import {config} from "dotenv";
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
-import {join} from "path";
+import { Command } from "commander";
+import { config } from "dotenv";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 
-import {findNhsNumber} from "nhs-number-utils";
 import {
   submitPrescriptionWithToken,
   createAndSubmitCancellation,
@@ -17,48 +16,58 @@ import {
   type BundleLike,
   type PrescriptionAction,
   signDigest,
-  addProvenanceToBundle
+  addProvenanceToBundle,
 } from "./index.js";
-import {getEnv, loadPrivateKey} from "./utils.js";
-import {obtainUserRestrictedAccessToken, type Cis2UserType} from "eps-auth";
+import { getEnv, loadPrivateKey } from "./utils.js";
+import { obtainUserRestrictedAccessToken, type Cis2UserType } from "eps-auth";
 
 function readInputBundle(filePath: string): BundleLike {
   const content = readFileSync(filePath, "utf-8");
   return JSON.parse(content) as BundleLike;
 }
 
-function saveBundle(action: PrescriptionAction, bundle: BundleLike, saveDir: string): string {
+function generateTimestamp(): string {
+  return new Date()
+    .toISOString()
+    .replace(/[-T:.Z]/g, "")
+    .slice(0, 14);
+}
+
+function savePayload(
+  action: PrescriptionAction,
+  type: "request" | "response",
+  payload: unknown,
+  saveDir: string,
+): string {
   if (!existsSync(saveDir)) {
-    mkdirSync(saveDir, {recursive: true});
+    mkdirSync(saveDir, { recursive: true });
   }
 
-  const nhsNumber = findNhsNumber(bundle) ?? "unknown-nhs-number";
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "-")
-    .split("-")
-    .slice(0, 6)
-    .join("");
-
-  const fileName = `${action}-bundle_${timestamp}_nhs-num-${nhsNumber}.json`;
+  const timestamp = generateTimestamp();
+  const fileName = `${timestamp}_${action}_${type}.json`;
   const outputPath = join(saveDir, fileName);
 
-  writeFileSync(outputPath, JSON.stringify(bundle, null, 2), "utf-8");
+  writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
   return outputPath;
 }
 
 function parseAction(action: string): PrescriptionAction {
   if (!SUPPORTED_ACTIONS.includes(action as PrescriptionAction)) {
     throw new Error(
-      `Unknown action '${action}'. Allowed actions: ${SUPPORTED_ACTIONS.join(", ")}`
+      `Unknown action '${action}'. Allowed actions: ${SUPPORTED_ACTIONS.join(", ")}`,
     );
   }
 
   return action as PrescriptionAction;
 }
 
-async function handleCreate(options: {input: string; saveDir: string; urid?: string; algorithm?: string; userType?: string}): Promise<void> {
+async function handleCreate(options: {
+  input: string;
+  saveDir: string;
+  urid?: string;
+  algorithm?: string;
+  userType?: string;
+}): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
   const inputBundle = readInputBundle(options.input);
@@ -70,27 +79,41 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
   const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
   const userType = (options.userType ?? "prescriber") as Cis2UserType;
 
-  const {accessToken, urid} = await obtainUserRestrictedAccessToken({
+  const { accessToken, urid } = await obtainUserRestrictedAccessToken({
     host,
     clientId,
     clientSecret,
     redirectUri,
-    userType
+    userType,
   });
 
   // If the incoming payload already has a provenance resource, do not replace it, and use the existing one
-  const signedBundle: BundleLike = inputBundle.entry?.some(e => e.resource?.resourceType === "Provenance")
+  const signedBundle: BundleLike = inputBundle.entry?.some(
+    (e) => e.resource?.resourceType === "Provenance",
+  )
     ? inputBundle
     : await (async () => {
-      const {digest, timestamp} = await preparePrescription(host, accessToken, inputBundle, urid);
-      const signature = signDigest(digest, privateKey, options.algorithm);
+        const { digest, timestamp } = await preparePrescription(
+          host,
+          accessToken,
+          inputBundle,
+          urid,
+        );
+        const signature = signDigest(digest, privateKey, options.algorithm);
 
-      return addProvenanceToBundle(inputBundle, digest, signature, timestamp);
-    })();
+        return addProvenanceToBundle(inputBundle, digest, signature, timestamp);
+      })();
 
   // update the file with the signed bundle
-  const signedBundlePath = saveBundle("create", signedBundle, options.saveDir);
-  console.log(`Signed bundle (which will be submitted to the FHIR Facade) saved to: ${signedBundlePath}`);
+  const signedBundlePath = savePayload(
+    "create",
+    "request",
+    signedBundle,
+    options.saveDir,
+  );
+  console.log(
+    `Signed bundle (which will be submitted to the FHIR Facade) saved to: ${signedBundlePath}`,
+  );
 
   // Submit the signed bundle
   result = await submitPrescriptionWithToken({
@@ -99,19 +122,26 @@ async function handleCreate(options: {input: string; saveDir: string; urid?: str
     privateKey,
     bundle: signedBundle,
     urid: options.urid ?? urid,
-    algorithm: options.algorithm
+    algorithm: options.algorithm,
   });
 
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
-  console.log(`Response: ${result.response.status} ${result.response.statusText}`);
+  console.log(
+    `Response: ${result.response.status} ${result.response.statusText}`,
+  );
 
   if (result.response.status >= 400) {
     console.log(JSON.stringify(result.response.body, null, 2));
     throw new Error("Prescription submission failed");
   }
 
-  const outputPath = saveBundle("create", result.response.body as BundleLike, options.saveDir);
+  const outputPath = savePayload(
+    "create",
+    "response",
+    result.response.body as BundleLike,
+    options.saveDir,
+  );
   console.log(`Response bundle saved to: ${outputPath}`);
 }
 
@@ -130,12 +160,12 @@ async function handleCancel(options: {
   const redirectUri = getEnv("PRESCRIBE_CALLBACK_URL");
   const userType = (options.userType ?? "prescriber") as Cis2UserType;
 
-  const {accessToken, urid} = await obtainUserRestrictedAccessToken({
+  const { accessToken, urid } = await obtainUserRestrictedAccessToken({
     host,
     clientId,
     clientSecret,
     redirectUri,
-    userType
+    userType,
   });
 
   const result = await createAndSubmitCancellation({
@@ -143,23 +173,46 @@ async function handleCancel(options: {
     token: accessToken,
     bundle: inputBundle,
     urid: options.urid ?? urid,
-    cancellationReasonType: parseCancellationReasonType(options.cancelReasonType)
+    cancellationReasonType: parseCancellationReasonType(
+      options.cancelReasonType,
+    ),
   });
 
   console.log(`Request ID: ${result.requestId}`);
   console.log(`Correlation ID: ${result.correlationId}`);
-  console.log(`Response: ${result.response.status} ${result.response.statusText}`);
+  console.log(
+    `Response: ${result.response.status} ${result.response.statusText}`,
+  );
 
   if (result.response.status >= 400) {
     console.log(JSON.stringify(result.response.body, null, 2));
     throw new Error("Cancellation request failed");
   }
 
-  const outputPath = saveBundle("cancel", result.cancellationBundle, options.saveDir);
-  console.log(outputPath);
+  const requestPath = savePayload(
+    "cancel",
+    "request",
+    result.cancellationBundle,
+    options.saveDir,
+  );
+  console.log(`Cancel request saved to: ${requestPath}`);
+
+  const responsePath = savePayload(
+    "cancel",
+    "response",
+    result.response.body,
+    options.saveDir,
+  );
+  console.log(`Cancel response saved to: ${responsePath}`);
 }
 
-async function handleSign(options: {input: string; urid?: string; algorithm?: string; prepareOnly?: boolean; userType?: string}): Promise<void> {
+async function handleSign(options: {
+  input: string;
+  urid?: string;
+  algorithm?: string;
+  prepareOnly?: boolean;
+  userType?: string;
+}): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
   const bundle = JSON.parse(readFileSync(options.input, "utf-8"));
@@ -177,24 +230,43 @@ async function handleSign(options: {input: string; urid?: string; algorithm?: st
     clientId,
     clientSecret,
     redirectUri,
-    userType
+    userType,
   });
   token = authResult.accessToken;
   resolvedUrid = resolvedUrid ?? authResult.urid;
 
   if (options.prepareOnly) {
-    const {digest, timestamp} = await preparePrescription(host, token, bundle, resolvedUrid);
-    console.log(JSON.stringify({digest, timestamp}, null, 2));
+    const { digest, timestamp } = await preparePrescription(
+      host,
+      token,
+      bundle,
+      resolvedUrid,
+    );
+    console.log(JSON.stringify({ digest, timestamp }, null, 2));
   } else {
-    const {digest, timestamp} = await preparePrescription(host, token, bundle);
+    const { digest, timestamp } = await preparePrescription(
+      host,
+      token,
+      bundle,
+    );
     const signature = signDigest(digest, privateKey, options.algorithm);
-    const signedBundle = addProvenanceToBundle(bundle, digest, signature, timestamp);
+    const signedBundle = addProvenanceToBundle(
+      bundle,
+      digest,
+      signature,
+      timestamp,
+    );
 
     console.log("Digest:", digest);
     console.log("Signature:", signature);
     console.log("Timestamp:", timestamp);
 
-    const outputPath = saveBundle("sign", signedBundle, "./data/prescriptions");
+    const outputPath = savePayload(
+      "sign",
+      "response",
+      signedBundle,
+      "./data/prescriptions",
+    );
     console.log(`Signed bundle saved to: ${outputPath}`);
   }
 }
@@ -206,20 +278,41 @@ async function main(): Promise<void> {
 
   program
     .name("fhir-prescribing")
-    .description("Perform EPS FHIR prescribing actions: create, cancel, sign, and more")
-    .requiredOption("--action <action>", `Action to perform (${SUPPORTED_ACTIONS.join(" | ")})`)
+    .description(
+      "Perform EPS FHIR prescribing actions: create, cancel, sign, and more",
+    )
+    .requiredOption(
+      "--action <action>",
+      `Action to perform (${SUPPORTED_ACTIONS.join(" | ")})`,
+    )
     .requiredOption("--input <file>", "Input prescription bundle JSON file")
-    .option("--save-dir <directory>", "Directory to save output Bundle JSON", "./data/prescriptions")
+    .option(
+      "--save-dir <directory>",
+      "Directory to save output Bundle JSON",
+      "./data/prescriptions",
+    )
     .option("--urid <urid>", "NHSD-Session-URID value (create/cancel/sign)")
     .option("--algorithm <alg>", "Signing algorithm (create/sign)", "RSA-SHA1")
     .option(
       "--cancel-reason-type <code>",
       `Cancellation reason type for cancel action (${CANCELLATION_REASON_TYPES.join(" | ")})`,
-      "0001"
+      "0001",
     )
-    .option("--prepare-only", "Only call $prepare and return the digest without signing (sign only)", false)
-    .option("--user-restricted", "Use user-restricted (CIS2 browser) auth instead of app-restricted", false)
-    .option("--user-type <type>", "CIS2 user type: prescriber or dispenser (user-restricted only)", "prescriber");
+    .option(
+      "--prepare-only",
+      "Only call $prepare and return the digest without signing (sign only)",
+      false,
+    )
+    .option(
+      "--user-restricted",
+      "Use user-restricted (CIS2 browser) auth instead of app-restricted",
+      false,
+    )
+    .option(
+      "--user-type <type>",
+      "CIS2 user type: prescriber or dispenser (user-restricted only)",
+      "prescriber",
+    );
 
   program.parse();
   const opts = program.opts<{

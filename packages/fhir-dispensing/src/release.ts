@@ -1,4 +1,4 @@
-import {sendDispensingRequest, type DispensingRequestResult} from "./http.js";
+import { sendDispensingRequest, type DispensingRequestResult } from "./http.js";
 
 export interface ReleaseTaskOptions {
   host: string;
@@ -9,11 +9,12 @@ export interface ReleaseTaskOptions {
   requestSaveDir?: string;
 }
 
-export async function releaseTask(options: ReleaseTaskOptions): Promise<DispensingRequestResult> {
+export async function releaseTask(
+  options: ReleaseTaskOptions,
+): Promise<DispensingRequestResult> {
   const mode = options.mode ?? "attended";
-  const endpoint = mode === "unattended"
-    ? "Task/$release-unattended"
-    : "Task/$release";
+  const endpoint =
+    mode === "unattended" ? "Task/$release-unattended" : "Task/$release";
 
   const result = await sendDispensingRequest({
     host: options.host,
@@ -22,7 +23,7 @@ export async function releaseTask(options: ReleaseTaskOptions): Promise<Dispensi
     body: options.body,
     urid: mode === "attended" ? options.urid : undefined,
     requestSaveDir: options.requestSaveDir,
-    requestFilePrefix: "release-request"
+    action: "release",
   });
 
   return result;

@@ -1,15 +1,12 @@
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from "fs";
-import {join} from "path";
-
-import {findNhsNumber} from "nhs-number-utils";
-
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 
 export interface BundleLike {
   resourceType: "Bundle";
   entry?: Array<{
     resource?: {
       resourceType?: string;
-      identifier?: Array<{value?: string}>;
+      identifier?: Array<{ value?: string }>;
     };
   }>;
 }
@@ -35,23 +32,66 @@ export function loadPrivateKey(): string {
     return readFileSync(path, "utf-8");
   }
 
-  throw new Error("set DISPENSING_PRIVATE_KEY or DISPENSING_PRIVATE_KEY_PATH in your .env");
+  throw new Error(
+    "set DISPENSING_PRIVATE_KEY or DISPENSING_PRIVATE_KEY_PATH in your .env",
+  );
 }
 
 export function loadParameters(filePath: string): Record<string, unknown> {
   return JSON.parse(readFileSync(filePath, "utf-8")) as Record<string, unknown>;
 }
 
+function generateTimestamp(): string {
+  return new Date()
+    .toISOString()
+    .replace(/[-T:.Z]/g, "")
+    .slice(0, 14);
+}
+
 export function saveJsonPayload(
   payload: unknown,
   saveDir: string,
-  fileName: string
+  fileName: string,
 ): string {
   if (!existsSync(saveDir)) {
-    mkdirSync(saveDir, {recursive: true});
+    mkdirSync(saveDir, { recursive: true });
   }
 
   const outputPath = join(saveDir, fileName);
+  writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
+  return outputPath;
+}
+
+export function saveRequest(
+  action: string,
+  payload: unknown,
+  saveDir: string,
+): string {
+  if (!existsSync(saveDir)) {
+    mkdirSync(saveDir, { recursive: true });
+  }
+
+  const timestamp = generateTimestamp();
+  const fileName = `${timestamp}_${action}_request.json`;
+  const outputPath = join(saveDir, fileName);
+
+  writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
+  return outputPath;
+}
+
+export function saveResponse(
+  action: string,
+  payload: unknown,
+  saveDir: string,
+): string {
+  if (!existsSync(saveDir)) {
+    mkdirSync(saveDir, { recursive: true });
+  }
+
+  const timestamp = generateTimestamp();
+  const fileName = `${timestamp}_${action}_response.json`;
+  const outputPath = join(saveDir, fileName);
+
   writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
   return outputPath;
 }
@@ -60,27 +100,7 @@ export function saveBundle(
   action: string,
   bundle: BundleLike,
   saveDir: string,
-  prescriptionId: string
+  prescriptionId: string,
 ): string {
-  if (!existsSync(saveDir)) {
-    mkdirSync(saveDir, {recursive: true});
-  }
-
-  const nhsNumber = findNhsNumber(bundle);
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[:.]/g, "-")
-    .replace("T", "-")
-    .split("-")
-    .slice(0, 6)
-    .join("");
-
-  const suffix = nhsNumber
-    ? `nhs-num-${nhsNumber}`
-    : `prescription-id-${prescriptionId}`;
-  const fileName = `${action}-bundle_${timestamp}_${suffix}.json`;
-  const outputPath = join(saveDir, fileName);
-
-  writeFileSync(outputPath, JSON.stringify(bundle, null, 2), "utf-8");
-  return outputPath;
+  return saveResponse(action, bundle, saveDir);
 }

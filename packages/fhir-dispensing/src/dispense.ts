@@ -1,8 +1,8 @@
-import {randomUUID} from "crypto";
+import { randomUUID } from "crypto";
 
-import {generateOdsCode, generatePractitionerRole} from "data-generators";
+import { generateOdsCode, generatePractitionerRole } from "data-generators";
 
-import {sendDispensingRequest, type DispensingRequestResult} from "./http.js";
+import { sendDispensingRequest, type DispensingRequestResult } from "./http.js";
 
 /**
  * Valid dispense notification type codes from medicationdispense-type CodeSystem.
@@ -15,7 +15,7 @@ export const DISPENSE_TYPE_CODES: Record<string, string> = {
   "0005": "Item cancelled",
   "0006": "Expired item",
   "0007": "Item to be dispensed",
-  "0008": "Item with dispenser"
+  "0008": "Item with dispenser",
 };
 
 export interface DispenseNotificationOptions {
@@ -34,7 +34,7 @@ export interface DispenseRequestOptions {
 
 interface MedicationRequestResource {
   resourceType: "MedicationRequest";
-  identifier?: Array<{system?: string; value?: string}>;
+  identifier?: Array<{ system?: string; value?: string }>;
   status?: string;
   intent?: string;
   category?: Array<Record<string, unknown>>;
@@ -45,8 +45,13 @@ interface MedicationRequestResource {
   courseOfTherapyType?: Record<string, unknown>;
   dosageInstruction?: Array<Record<string, unknown>>;
   dispenseRequest?: {
-    quantity?: {value?: number; unit?: string; system?: string; code?: string};
-    performer?: {identifier?: {system?: string; value?: string}};
+    quantity?: {
+      value?: number;
+      unit?: string;
+      system?: string;
+      code?: string;
+    };
+    performer?: { identifier?: { system?: string; value?: string } };
     extension?: Array<Record<string, unknown>>;
     validityPeriod?: Record<string, unknown>;
     [key: string]: unknown;
@@ -64,36 +69,49 @@ interface BundleEntry {
 interface PrescriptionBundle {
   resourceType: "Bundle";
   id?: string;
-  identifier?: {system?: string; value?: string};
+  identifier?: { system?: string; value?: string };
   type?: string;
   entry?: BundleEntry[];
   [key: string]: unknown;
 }
 
-function extractMedicationRequests(bundle: PrescriptionBundle): MedicationRequestResource[] {
+function extractMedicationRequests(
+  bundle: PrescriptionBundle,
+): MedicationRequestResource[] {
   if (!bundle.entry) return [];
   return bundle.entry
-    .filter((e): e is BundleEntry & {resource: MedicationRequestResource} =>
-      e.resource?.resourceType === "MedicationRequest"
+    .filter(
+      (e): e is BundleEntry & { resource: MedicationRequestResource } =>
+        e.resource?.resourceType === "MedicationRequest",
     )
-    .map(e => e.resource);
+    .map((e) => e.resource);
 }
 
-function extractPatientNhsNumber(bundle: PrescriptionBundle): string | undefined {
-  const patientEntry = bundle.entry?.find(e => e.resource?.resourceType === "Patient");
+function extractPatientNhsNumber(
+  bundle: PrescriptionBundle,
+): string | undefined {
+  const patientEntry = bundle.entry?.find(
+    (e) => e.resource?.resourceType === "Patient",
+  );
   if (!patientEntry?.resource) return undefined;
   const patient = patientEntry.resource as Record<string, unknown>;
-  const identifiers = patient.identifier as Array<{system?: string; value?: string}> | undefined;
+  const identifiers = patient.identifier as
+    | Array<{ system?: string; value?: string }>
+    | undefined;
   return identifiers?.find(
-    id => id.system === "https://fhir.nhs.uk/Id/nhs-number"
+    (id) => id.system === "https://fhir.nhs.uk/Id/nhs-number",
   )?.value;
 }
 
 function extractPatientDisplay(bundle: PrescriptionBundle): string | undefined {
-  const patientEntry = bundle.entry?.find(e => e.resource?.resourceType === "Patient");
+  const patientEntry = bundle.entry?.find(
+    (e) => e.resource?.resourceType === "Patient",
+  );
   if (!patientEntry?.resource) return undefined;
   const patient = patientEntry.resource as Record<string, unknown>;
-  const names = patient.name as Array<{prefix?: string[]; given?: string[]; family?: string}> | undefined;
+  const names = patient.name as
+    | Array<{ prefix?: string[]; given?: string[]; family?: string }>
+    | undefined;
   if (!names?.[0]) return undefined;
   const name = names[0];
   const parts: string[] = [];
@@ -107,46 +125,55 @@ function extractBundleIdentifier(bundle: PrescriptionBundle): string {
   return bundle.identifier?.value ?? bundle.id ?? randomUUID();
 }
 
-function buildContainedPractitionerRole(organizationFullUrl: string): Record<string, unknown> {
+function buildContainedPractitionerRole(
+  organizationFullUrl: string,
+): Record<string, unknown> {
   const practitionerRole = generatePractitionerRole({
     id: "performer",
-    sdsJobRoleCode: "S0030:G0100:R0620"
+    sdsJobRoleCode: "S0030:G0100:R0620",
   });
 
   return {
     ...practitionerRole,
     organization: {
-      reference: organizationFullUrl
-    }
+      reference: organizationFullUrl,
+    },
   };
 }
 
 function resolveRequesterIdentifier(
   medRequest: MedicationRequestResource,
-  bundle: PrescriptionBundle
+  bundle: PrescriptionBundle,
 ): Record<string, unknown> {
   const requester = medRequest.requester as Record<string, unknown> | undefined;
   if (!requester) {
-    return {identifier: {system: "https://fhir.nhs.uk/Id/sds-role-profile-id", value: "unknown"}};
+    return {
+      identifier: {
+        system: "https://fhir.nhs.uk/Id/sds-role-profile-id",
+        value: "unknown",
+      },
+    };
   }
 
   // If already an identifier reference, use it directly
   if (requester.identifier) {
-    return {identifier: requester.identifier};
+    return { identifier: requester.identifier };
   }
 
   // Resolve urn:uuid: reference to extract the SDS role profile ID
   const ref = requester.reference as string | undefined;
   if (ref && bundle.entry) {
-    const entry = bundle.entry.find(e => e.fullUrl === ref);
+    const entry = bundle.entry.find((e) => e.fullUrl === ref);
     if (entry?.resource) {
       const resource = entry.resource as Record<string, unknown>;
-      const identifiers = resource.identifier as Array<{system?: string; value?: string}> | undefined;
+      const identifiers = resource.identifier as
+        | Array<{ system?: string; value?: string }>
+        | undefined;
       const sdsId = identifiers?.find(
-        id => id.system === "https://fhir.nhs.uk/Id/sds-role-profile-id"
+        (id) => id.system === "https://fhir.nhs.uk/Id/sds-role-profile-id",
       );
       if (sdsId) {
-        return {identifier: {system: sdsId.system, value: sdsId.value}};
+        return { identifier: { system: sdsId.system, value: sdsId.value } };
       }
     }
   }
@@ -160,7 +187,7 @@ function buildMedicationDispense(
   patientDisplay: string | undefined,
   dispenseType: string,
   medRequestFullUrl: string,
-  organizationFullUrl: string
+  organizationFullUrl: string,
 ): Record<string, unknown> {
   const dispenseItemId = randomUUID();
 
@@ -168,17 +195,18 @@ function buildMedicationDispense(
     value: 1,
     unit: "unit",
     system: "http://snomed.info/sct",
-    code: "732936001"
+    code: "732936001",
   };
 
-  const dispenseTypeDisplay = DISPENSE_TYPE_CODES[dispenseType] ?? "Item fully dispensed";
+  const dispenseTypeDisplay =
+    DISPENSE_TYPE_CODES[dispenseType] ?? "Item fully dispensed";
 
   const subject: Record<string, unknown> = {
     type: "Patient",
     identifier: {
       system: "https://fhir.nhs.uk/Id/nhs-number",
-      value: nhsNumber ?? "0000000000"
-    }
+      value: nhsNumber ?? "0000000000",
+    },
   };
   if (patientDisplay) {
     subject.display = patientDisplay;
@@ -193,15 +221,15 @@ function buildMedicationDispense(
         valueCoding: {
           system: "https://fhir.nhs.uk/CodeSystem/EPS-task-business-status",
           code: "0003",
-          display: "With Dispenser - Active"
-        }
-      }
+          display: "With Dispenser - Active",
+        },
+      },
     ],
     identifier: [
       {
         system: "https://fhir.nhs.uk/Id/prescription-dispense-item-number",
-        value: dispenseItemId
-      }
+        value: dispenseItemId,
+      },
     ],
     status: "completed",
     medicationCodeableConcept: medRequest.medicationCodeableConcept,
@@ -209,27 +237,27 @@ function buildMedicationDispense(
     performer: [
       {
         actor: {
-          reference: "#performer"
-        }
-      }
+          reference: "#performer",
+        },
+      },
     ],
     authorizingPrescription: [
       {
-        reference: medRequestFullUrl
-      }
+        reference: medRequestFullUrl,
+      },
     ],
     type: {
       coding: [
         {
           system: "https://fhir.nhs.uk/CodeSystem/medicationdispense-type",
           code: dispenseType,
-          display: dispenseTypeDisplay
-        }
-      ]
+          display: dispenseTypeDisplay,
+        },
+      ],
     },
     quantity,
     whenHandedOver: new Date().toISOString(),
-    dosageInstruction: medRequest.dosageInstruction ?? []
+    dosageInstruction: medRequest.dosageInstruction ?? [],
   };
 }
 
@@ -238,13 +266,16 @@ function buildMedicationRequestForDispense(
   nhsNumber: string | undefined,
   patientDisplay: string | undefined,
   dispenseType: string,
-  inputBundle: PrescriptionBundle
+  inputBundle: PrescriptionBundle,
 ): Record<string, unknown> {
-  const dispenseTypeDisplay = DISPENSE_TYPE_CODES[dispenseType] ?? "Item fully dispensed";
+  const dispenseTypeDisplay =
+    DISPENSE_TYPE_CODES[dispenseType] ?? "Item fully dispensed";
 
   const extensions = [
     ...(medRequest.extension ?? []).filter(
-      ext => ext.url !== "https://fhir.nhs.uk/StructureDefinition/Extension-EPS-DispensingInformation"
+      (ext) =>
+        ext.url !==
+        "https://fhir.nhs.uk/StructureDefinition/Extension-EPS-DispensingInformation",
     ),
     {
       url: "https://fhir.nhs.uk/StructureDefinition/Extension-EPS-DispensingInformation",
@@ -254,26 +285,28 @@ function buildMedicationRequestForDispense(
           valueCoding: {
             system: "https://fhir.nhs.uk/CodeSystem/medicationdispense-type",
             code: dispenseType,
-            display: dispenseTypeDisplay
-          }
-        }
-      ]
-    }
+            display: dispenseTypeDisplay,
+          },
+        },
+      ],
+    },
   ];
 
   const subject: Record<string, unknown> = {
     identifier: {
       system: "https://fhir.nhs.uk/Id/nhs-number",
-      value: nhsNumber ?? "0000000000"
-    }
+      value: nhsNumber ?? "0000000000",
+    },
   };
   if (patientDisplay) {
     subject.display = patientDisplay;
   }
 
-  const orderItemId = medRequest.identifier?.find(
-    id => id.system === "https://fhir.nhs.uk/Id/prescription-order-item-number"
-  )?.value ?? randomUUID();
+  const orderItemId =
+    medRequest.identifier?.find(
+      (id) =>
+        id.system === "https://fhir.nhs.uk/Id/prescription-order-item-number",
+    )?.value ?? randomUUID();
 
   return {
     resourceType: "MedicationRequest",
@@ -290,13 +323,13 @@ function buildMedicationRequestForDispense(
     courseOfTherapyType: medRequest.courseOfTherapyType,
     dosageInstruction: medRequest.dosageInstruction,
     dispenseRequest: medRequest.dispenseRequest,
-    substitution: medRequest.substitution
+    substitution: medRequest.substitution,
   };
 }
 
 function buildOrganization(
   pharmacyOds: string,
-  reimbursementAuthority?: string
+  reimbursementAuthority?: string,
 ): Record<string, unknown> {
   const extensions: Array<Record<string, unknown>> = [];
 
@@ -308,10 +341,10 @@ function buildOrganization(
           url: "reimbursementAuthority",
           valueIdentifier: {
             system: "https://fhir.nhs.uk/Id/ods-organization-code",
-            value: reimbursementAuthority
-          }
-        }
-      ]
+            value: reimbursementAuthority,
+          },
+        },
+      ],
     });
   }
 
@@ -320,8 +353,8 @@ function buildOrganization(
     identifier: [
       {
         system: "https://fhir.nhs.uk/Id/ods-organization-code",
-        value: pharmacyOds
-      }
+        value: pharmacyOds,
+      },
     ],
     active: true,
     type: [
@@ -330,11 +363,11 @@ function buildOrganization(
           {
             system: "https://fhir.nhs.uk/CodeSystem/organisation-role",
             code: "182",
-            display: "PHARMACY"
-          }
-        ]
-      }
-    ]
+            display: "PHARMACY",
+          },
+        ],
+      },
+    ],
   };
 
   if (extensions.length > 0) {
@@ -346,7 +379,7 @@ function buildOrganization(
 
 export function generateDispenseNotificationBundle(
   inputBundle: PrescriptionBundle,
-  options: DispenseNotificationOptions
+  options: DispenseNotificationOptions,
 ): Record<string, unknown> {
   const medicationRequests = extractMedicationRequests(inputBundle);
 
@@ -367,33 +400,42 @@ export function generateDispenseNotificationBundle(
   // Build paired MedicationRequest + MedicationDispense entries.
   // The MedicationDispense.authorizingPrescription must reference the
   // MedicationRequest entry's fullUrl within this bundle.
-  const pairedEntries = medicationRequests.map(mr => {
+  const pairedEntries = medicationRequests.map((mr) => {
     const mrId = randomUUID();
     const mrFullUrl = `urn:uuid:${mrId}`;
 
     const medRequestResource = buildMedicationRequestForDispense(
-      mr, nhsNumber, patientDisplay, dispenseType, inputBundle
+      mr,
+      nhsNumber,
+      patientDisplay,
+      dispenseType,
+      inputBundle,
     );
 
     const dispenseResource = buildMedicationDispense(
-      mr, nhsNumber, patientDisplay, dispenseType, mrFullUrl, organizationFullUrl
+      mr,
+      nhsNumber,
+      patientDisplay,
+      dispenseType,
+      mrFullUrl,
+      organizationFullUrl,
     );
     const dispenseId = randomUUID();
     const dispenseFullUrl = `urn:uuid:${dispenseId}`;
 
     return {
-      medRequest: {fullUrl: mrFullUrl, resource: medRequestResource},
-      dispense: {fullUrl: dispenseFullUrl, resource: dispenseResource}
+      medRequest: { fullUrl: mrFullUrl, resource: medRequestResource },
+      dispense: { fullUrl: dispenseFullUrl, resource: dispenseResource },
     };
   });
 
-  const dispenseEntries = pairedEntries.map(p => p.dispense);
-  const medRequestEntries = pairedEntries.map(p => p.medRequest);
+  const dispenseEntries = pairedEntries.map((p) => p.dispense);
+  const medRequestEntries = pairedEntries.map((p) => p.medRequest);
 
   // Build Organization entry
   const orgEntry = {
     fullUrl: organizationFullUrl,
-    resource: buildOrganization(pharmacyOds, options.reimbursementAuthority)
+    resource: buildOrganization(pharmacyOds, options.reimbursementAuthority),
   };
 
   // Build MessageHeader
@@ -402,66 +444,72 @@ export function generateDispenseNotificationBundle(
     eventCoding: {
       system: "https://fhir.nhs.uk/CodeSystem/message-event",
       code: "dispense-notification",
-      display: "Dispense Notification"
+      display: "Dispense Notification",
     },
     sender: {
       identifier: {
         system: "https://fhir.nhs.uk/Id/ods-organization-code",
-        value: pharmacyOds
+        value: pharmacyOds,
       },
-      display: pharmacyOds
+      display: pharmacyOds,
     },
     source: {
-      endpoint: `https://directory.spineservices.nhs.uk/STU3/Organization/${pharmacyOds}`
+      endpoint: `https://directory.spineservices.nhs.uk/STU3/Organization/${pharmacyOds}`,
     },
     reason: {
       coding: [
         {
           system: "https://fhir.nhs.uk/CodeSystem/message-reason-prescription",
           code: "notification",
-          display: "Notification"
-        }
-      ]
+          display: "Notification",
+        },
+      ],
     },
     response: {
       identifier: extractBundleIdentifier(inputBundle),
-      code: "ok"
+      code: "ok",
     },
-    focus: dispenseEntries.map(e => ({reference: e.fullUrl}))
+    focus: dispenseEntries.map((e) => ({ reference: e.fullUrl })),
   };
 
   // Assemble the bundle
-  const entries: Array<{fullUrl: string; resource: Record<string, unknown>}> = [
-    {
-      fullUrl: `urn:uuid:${messageHeaderId}`,
-      resource: messageHeader
-    },
-    ...dispenseEntries.map(e => ({fullUrl: e.fullUrl, resource: e.resource})),
-    ...medRequestEntries,
-    orgEntry
-  ];
+  const entries: Array<{ fullUrl: string; resource: Record<string, unknown> }> =
+    [
+      {
+        fullUrl: `urn:uuid:${messageHeaderId}`,
+        resource: messageHeader,
+      },
+      ...dispenseEntries.map((e) => ({
+        fullUrl: e.fullUrl,
+        resource: e.resource,
+      })),
+      ...medRequestEntries,
+      orgEntry,
+    ];
 
   return {
     resourceType: "Bundle",
     id: bundleId,
     identifier: {
       system: "https://tools.ietf.org/html/rfc4122",
-      value: bundleId
+      value: bundleId,
     },
     type: "message",
     timestamp: new Date().toISOString(),
-    entry: entries
+    entry: entries,
   };
 }
 
 export async function dispenseNotification(
   inputBundle: PrescriptionBundle,
   dispenseOptions: DispenseNotificationOptions,
-  requestOptions: DispenseRequestOptions
+  requestOptions: DispenseRequestOptions,
 ): Promise<DispensingRequestResult> {
   const body = generateDispenseNotificationBundle(inputBundle, dispenseOptions);
 
-  console.log(`Sending dispense notification for prescription ${dispenseOptions.prescriptionId}`);
+  console.log(
+    `Sending dispense notification for prescription ${dispenseOptions.prescriptionId}`,
+  );
 
   return sendDispensingRequest({
     host: requestOptions.host,
@@ -470,6 +518,6 @@ export async function dispenseNotification(
     body,
     urid: requestOptions.urid,
     requestSaveDir: requestOptions.requestSaveDir,
-    requestFilePrefix: "dispense-request"
+    action: "dispense",
   });
 }

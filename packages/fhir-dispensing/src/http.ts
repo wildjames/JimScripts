@@ -1,5 +1,5 @@
-import {randomUUID} from "crypto";
-import {saveJsonPayload} from "./utils.js";
+import { randomUUID } from "crypto";
+import { saveRequest } from "./utils.js";
 
 function getDispensingServicePath(): string {
   const isPr = (process.env.IS_PR ?? "").trim().toLowerCase() === "true";
@@ -22,7 +22,7 @@ export interface DispensingRequestOptions {
   body: unknown;
   urid?: string;
   requestSaveDir?: string;
-  requestFilePrefix?: string;
+  action?: string;
 }
 
 export interface DispensingRequestResult {
@@ -33,7 +33,7 @@ export interface DispensingRequestResult {
 }
 
 export async function sendDispensingRequest(
-  options: DispensingRequestOptions
+  options: DispensingRequestOptions,
 ): Promise<DispensingRequestResult> {
   const requestId = randomUUID();
   const correlationId = randomUUID();
@@ -44,7 +44,7 @@ export async function sendDispensingRequest(
     "Content-Type": "application/fhir+json",
     Accept: "application/fhir+json",
     "X-Request-ID": requestId,
-    "X-Correlation-ID": correlationId
+    "X-Correlation-ID": correlationId,
   };
 
   if (options.urid) {
@@ -54,12 +54,11 @@ export async function sendDispensingRequest(
   const url = `https://${options.host}${servicePath}/FHIR/R4/${options.endpoint}`;
   console.log(`Request endpoint: ${url}`);
 
-  if (options.requestSaveDir) {
-    const prefix = options.requestFilePrefix ?? "request";
-    const requestOutputPath = saveJsonPayload(
+  if (options.requestSaveDir && options.action) {
+    const requestOutputPath = saveRequest(
+      options.action,
       options.body,
       options.requestSaveDir,
-      `${prefix}-${requestId}.json`
     );
     console.log(`Saved request body: ${requestOutputPath}`);
   }
@@ -67,7 +66,7 @@ export async function sendDispensingRequest(
   const response = await fetch(url, {
     method: "POST",
     headers,
-    body: JSON.stringify(options.body)
+    body: JSON.stringify(options.body),
   });
 
   let responseBody: unknown;
@@ -78,5 +77,5 @@ export async function sendDispensingRequest(
     responseBody = await response.text();
   }
 
-  return {response, requestId, correlationId, responseBody};
+  return { response, requestId, correlationId, responseBody };
 }
