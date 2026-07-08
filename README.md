@@ -28,18 +28,18 @@ make install-playwright
 
 ## Available CLI Commands
 
-| Command | Description |
-|---|---|
-| `generate-nhs-numbers` | Generate/validate NHS numbers |
-| `generate-data` | Generate ODS codes, FHIR Organizations, PractitionerRoles |
-| `generate-prescription-ids` | Generate prescription order numbers |
-| `create-prescription-bundle` | Create FHIR prescription message bundles |
-| `fhir-prescribing` | Create, cancel, and sign prescriptions (user-restricted auth) |
-| `fhir-dispensing` | Release, return, and dispense prescriptions |
-| `generate-psu-request` | Generate PSU FHIR bundles |
-| `send-psu-request` | Send PSU bundles to the PSU API endpoint |
-| `send-pfp-request` | Fetch Prescriptions-for-Patients bundles via OAuth2 |
-| `psu-wizard` | Interactive wizard combining PfP fetch and PSU generation/sending |
+| Command                      | Description                                                       |
+| ---------------------------- | ----------------------------------------------------------------- |
+| `generate-nhs-numbers`       | Generate/validate NHS numbers                                     |
+| `generate-data`              | Generate ODS codes, FHIR Organizations, PractitionerRoles         |
+| `generate-prescription-ids`  | Generate prescription order numbers                               |
+| `create-prescription-bundle` | Create FHIR prescription message bundles                          |
+| `fhir-prescribing`           | Create, cancel, and sign prescriptions (user-restricted auth)     |
+| `fhir-dispensing`            | Release, return, and dispense prescriptions                       |
+| `generate-psu-request`       | Generate PSU FHIR bundles                                         |
+| `send-psu-request`           | Send PSU bundles to the PSU API endpoint                          |
+| `send-pfp-request`           | Fetch Prescriptions-for-Patients bundles via OAuth2               |
+| `psu-wizard`                 | Interactive wizard combining PfP fetch and PSU generation/sending |
 
 ## Quick Start: create, release, dispense
 
