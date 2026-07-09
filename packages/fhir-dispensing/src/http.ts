@@ -23,6 +23,8 @@ export interface DispensingRequestOptions {
   urid?: string;
   requestSaveDir?: string;
   action?: string;
+  requestId?: string;
+  correlationId?: string;
 }
 
 export interface DispensingRequestResult {
@@ -35,8 +37,8 @@ export interface DispensingRequestResult {
 export async function sendDispensingRequest(
   options: DispensingRequestOptions,
 ): Promise<DispensingRequestResult> {
-  const requestId = randomUUID();
-  const correlationId = randomUUID();
+  const requestId = options.requestId ?? randomUUID();
+  const correlationId = options.correlationId ?? randomUUID();
   const servicePath = getDispensingServicePath();
 
   const headers: Record<string, string> = {
@@ -59,6 +61,8 @@ export async function sendDispensingRequest(
       options.action,
       options.body,
       options.requestSaveDir,
+      requestId,
+      correlationId,
     );
     console.log(`Saved request body: ${requestOutputPath}`);
   }

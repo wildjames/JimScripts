@@ -50,6 +50,8 @@ Options:
 - `--pharmacy-ods <code>`: optional owner Organization ODS code override; when the CLI generates or normalizes the request body, this value is applied to the owner Organization in the FHIR `Parameters`
 - `--save-dir <directory>`: directory to save the downloaded Bundle JSON (default: `./data/prescriptions`)
 - `--urid <urid>`: optional `NHSD-Session-URID` override for user-restricted `$release`
+- `--request-id <uuid>`: override the `X-Request-ID` header value (default: random UUID)
+- `--correlation-id <uuid>`: override the `X-Correlation-ID` header value (default: random UUID)
 
 If you pass any action other than `release`, the CLI currently exits with a not implemented error. This is intentional groundwork for upcoming dispensing interactions.
 

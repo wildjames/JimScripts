@@ -7,6 +7,8 @@ export interface ReleaseTaskOptions {
   mode?: "attended" | "unattended";
   urid?: string;
   requestSaveDir?: string;
+  requestId?: string;
+  correlationId?: string;
 }
 
 export async function releaseTask(
@@ -24,6 +26,8 @@ export async function releaseTask(
     urid: mode === "attended" ? options.urid : undefined,
     requestSaveDir: options.requestSaveDir,
     action: "release",
+    requestId: options.requestId,
+    correlationId: options.correlationId,
   });
 
   return result;

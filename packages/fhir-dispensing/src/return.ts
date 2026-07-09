@@ -36,6 +36,8 @@ export interface ReturnRequestOptions {
   token: string;
   urid?: string;
   requestSaveDir?: string;
+  requestId?: string;
+  correlationId?: string;
 }
 
 function generateContainedResources(
@@ -149,5 +151,7 @@ export async function returnPrescription(
     urid: requestOptions.urid,
     requestSaveDir: requestOptions.requestSaveDir,
     action: "return",
+    requestId: requestOptions.requestId,
+    correlationId: requestOptions.correlationId,
   });
 }

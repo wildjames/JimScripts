@@ -66,13 +66,17 @@ export function saveRequest(
   action: string,
   payload: unknown,
   saveDir: string,
+  requestId?: string,
+  correlationId?: string,
 ): string {
   if (!existsSync(saveDir)) {
     mkdirSync(saveDir, { recursive: true });
   }
 
   const timestamp = generateTimestamp();
-  const fileName = `${timestamp}_${action}_request.json`;
+  const ids =
+    requestId && correlationId ? `_${requestId}:${correlationId}` : "";
+  const fileName = `${timestamp}_${action}${ids}_request.json`;
   const outputPath = join(saveDir, fileName);
 
   writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
@@ -83,13 +87,17 @@ export function saveResponse(
   action: string,
   payload: unknown,
   saveDir: string,
+  requestId?: string,
+  correlationId?: string,
 ): string {
   if (!existsSync(saveDir)) {
     mkdirSync(saveDir, { recursive: true });
   }
 
   const timestamp = generateTimestamp();
-  const fileName = `${timestamp}_${action}_response.json`;
+  const ids =
+    requestId && correlationId ? `_${requestId}:${correlationId}` : "";
+  const fileName = `${timestamp}_${action}${ids}_response.json`;
   const outputPath = join(saveDir, fileName);
 
   writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");

@@ -30,6 +30,8 @@ export interface DispenseRequestOptions {
   token: string;
   urid?: string;
   requestSaveDir?: string;
+  requestId?: string;
+  correlationId?: string;
 }
 
 interface MedicationRequestResource {
@@ -519,5 +521,7 @@ export async function dispenseNotification(
     urid: requestOptions.urid,
     requestSaveDir: requestOptions.requestSaveDir,
     action: "dispense",
+    requestId: requestOptions.requestId,
+    correlationId: requestOptions.correlationId,
   });
 }

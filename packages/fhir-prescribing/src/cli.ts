@@ -38,13 +38,17 @@ function savePayload(
   type: "request" | "response",
   payload: unknown,
   saveDir: string,
+  requestId?: string,
+  correlationId?: string,
 ): string {
   if (!existsSync(saveDir)) {
     mkdirSync(saveDir, { recursive: true });
   }
 
   const timestamp = generateTimestamp();
-  const fileName = `${timestamp}_${action}_${type}.json`;
+  const ids =
+    requestId && correlationId ? `_${requestId}:${correlationId}` : "";
+  const fileName = `${timestamp}_${action}${ids}_${type}.json`;
   const outputPath = join(saveDir, fileName);
 
   writeFileSync(outputPath, JSON.stringify(payload, null, 2), "utf-8");
@@ -104,17 +108,6 @@ async function handleCreate(options: {
         return addProvenanceToBundle(inputBundle, digest, signature, timestamp);
       })();
 
-  // update the file with the signed bundle
-  const signedBundlePath = savePayload(
-    "create",
-    "request",
-    signedBundle,
-    options.saveDir,
-  );
-  console.log(
-    `Signed bundle (which will be submitted to the FHIR Facade) saved to: ${signedBundlePath}`,
-  );
-
   // Submit the signed bundle
   result = await submitPrescriptionWithToken({
     host,
@@ -131,6 +124,19 @@ async function handleCreate(options: {
     `Response: ${result.response.status} ${result.response.statusText}`,
   );
 
+  // Save the signed bundle (request) with IDs now available
+  const signedBundlePath = savePayload(
+    "create",
+    "request",
+    signedBundle,
+    options.saveDir,
+    result.requestId,
+    result.correlationId,
+  );
+  console.log(
+    `Signed bundle (which will be submitted to the FHIR Facade) saved to: ${signedBundlePath}`,
+  );
+
   if (result.response.status >= 400) {
     console.log(JSON.stringify(result.response.body, null, 2));
     throw new Error("Prescription submission failed");
@@ -141,6 +147,8 @@ async function handleCreate(options: {
     "response",
     result.response.body as BundleLike,
     options.saveDir,
+    result.requestId,
+    result.correlationId,
   );
   console.log(`Response bundle saved to: ${outputPath}`);
 }
@@ -194,6 +202,8 @@ async function handleCancel(options: {
     "request",
     result.cancellationBundle,
     options.saveDir,
+    result.requestId,
+    result.correlationId,
   );
   console.log(`Cancel request saved to: ${requestPath}`);
 
@@ -202,6 +212,8 @@ async function handleCancel(options: {
     "response",
     result.response.body,
     options.saveDir,
+    result.requestId,
+    result.correlationId,
   );
   console.log(`Cancel response saved to: ${responsePath}`);
 }

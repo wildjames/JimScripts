@@ -102,6 +102,19 @@ async function main(): Promise<void> {
       "--dispense-type <code>",
       "Dispense type code from medicationdispense-type CodeSystem (default: 0001 = Item fully dispensed)",
       "0001",
+    )
+    .option(
+      "--raw",
+      "Send the --input file payload as-is without any normalization (for replaying exact requests)",
+      false,
+    )
+    .option(
+      "--request-id <uuid>",
+      "Override the X-Request-ID header value (default: random UUID)",
+    )
+    .option(
+      "--correlation-id <uuid>",
+      "Override the X-Correlation-ID header value (default: random UUID)",
     );
 
   program.parse();
@@ -117,17 +130,25 @@ async function main(): Promise<void> {
     reasonText?: string;
     reimbursementAuthority?: string;
     dispenseType?: string;
+    raw?: boolean;
+    requestId?: string;
+    correlationId?: string;
   }>();
 
   const action = parseAction(options.action);
 
   if (
     !options.prescriptionId &&
-    !(action === "release" && options.appRestricted)
+    !(action === "release" && options.appRestricted) &&
+    !options.raw
   ) {
     throw new Error(
-      "--prescription-id is required unless using --app-restricted with release action",
+      "--prescription-id is required unless using --app-restricted with release action or --raw",
     );
+  }
+
+  if (options.raw && !options.input) {
+    throw new Error("--raw requires --input to specify the payload file");
   }
 
   if (action === "return" && !options.reasonCode) {
@@ -198,21 +219,26 @@ async function main(): Promise<void> {
 
   switch (action) {
     case "release": {
-      const body = options.input
-        ? normalizeReleaseParameters(
-            loadParameters(options.input),
-            options.prescriptionId,
-            {
-              includeAgent: mode === "attended",
-              pharmacyOds: options.pharmacyOds,
-              includeGroupIdentifier: mode === "attended",
-            },
-          )
-        : generateReleaseParameters(options.prescriptionId, {
+      let body: unknown;
+      if (options.raw) {
+        body = loadParameters(options.input!);
+      } else if (options.input) {
+        body = normalizeReleaseParameters(
+          loadParameters(options.input),
+          options.prescriptionId,
+          {
             includeAgent: mode === "attended",
             pharmacyOds: options.pharmacyOds,
             includeGroupIdentifier: mode === "attended",
-          });
+          },
+        );
+      } else {
+        body = generateReleaseParameters(options.prescriptionId, {
+          includeAgent: mode === "attended",
+          pharmacyOds: options.pharmacyOds,
+          includeGroupIdentifier: mode === "attended",
+        });
+      }
 
       result = await releaseTask({
         host,
@@ -221,6 +247,8 @@ async function main(): Promise<void> {
         mode,
         urid,
         requestSaveDir: options.saveDir,
+        requestId: options.requestId,
+        correlationId: options.correlationId,
       });
       break;
     }
@@ -242,6 +270,8 @@ async function main(): Promise<void> {
           token,
           urid,
           requestSaveDir: options.saveDir,
+          requestId: options.requestId,
+          correlationId: options.correlationId,
         },
       );
       break;
@@ -273,6 +303,8 @@ async function main(): Promise<void> {
           token,
           urid,
           requestSaveDir: options.saveDir,
+          requestId: options.requestId,
+          correlationId: options.correlationId,
         },
       );
       break;
@@ -300,6 +332,8 @@ async function main(): Promise<void> {
     action,
     result.responseBody as BundleLike,
     options.saveDir,
+    result.requestId,
+    result.correlationId,
   );
   console.log(bundlePath);
 }
