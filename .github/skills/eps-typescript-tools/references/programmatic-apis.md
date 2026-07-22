@@ -108,6 +108,67 @@ const { digest } = await preparePrescription(host, token, bundle, urid);
 const signature = signDigest(digest, privateKey, "RSA-SHA1");
 ```
 
+## fhir-dispensing
+
+```typescript
+import {
+  releaseTask,
+  returnPrescription,
+  dispenseNotification,
+  submitClaim,
+  generateClaim,
+  CHARGE_EXEMPTION_CODES,
+  CLAIM_STATUS_CODES,
+  RETURN_REASON_CODES,
+  DISPENSE_TYPE_CODES,
+} from "fhir-dispensing";
+
+// Submit a reimbursement claim from a dispense notification bundle
+const result = await submitClaim(
+  dispenseBundle,
+  {
+    prescriptionId: "24F5DA-A83008-7EFE6Z",
+    chargeExemption: "0001",
+    exemptionEvidence: "no-evidence-seen",
+    claimStatus: "0006",
+  },
+  { host, token, urid },
+);
+console.log(result.response.status);
+
+// Return a prescription
+const returnResult = await returnPrescription(
+  { prescriptionId: "24F5DA-A83008-7EFE6Z", reasonCode: "0001" },
+  { host, token, urid },
+);
+```
+
+## signing-service
+
+```typescript
+import {
+  signWithDss,
+  type DssSigningOptions,
+  type DssSignatureResult,
+} from "signing-service";
+
+// Sign digest(s) via NHS Digital Signature Service
+const dssResult = await signWithDss({
+  host,
+  accessToken,
+  apiKey,
+  kid,
+  privateKey,
+  sdsUserId: "656005750107",
+  digests: [{ id: "payload-1", payload: base64Digest }],
+  algorithm: "RS256",
+  callbackUrl: "https://google.com",
+  mock: false,
+});
+console.log(dssResult.signatures[0].signature);
+console.log(dssResult.certificate); // X509 cert from DSS
+```
+
 ## psu-request-generator
 
 ```typescript

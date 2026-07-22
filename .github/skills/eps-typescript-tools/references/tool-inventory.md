@@ -1,17 +1,19 @@
 # CLI Tool Inventory
 
-| CLI Command                  | Package                     | Purpose                                                           |
-| ---------------------------- | --------------------------- | ----------------------------------------------------------------- |
-| `generate-nhs-numbers`       | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
-| `generate-ods-codes`         | `ods-code-generator`        | Generate ODS organisation codes                                   |
-| `generate-prescription-ids`  | `prescription-id-generator` | Generate prescription order numbers                               |
-| `create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
-| `fhir-prescribing`           | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
-| `sign-prescription`          | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
-| `generate-psu-request`       | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
-| `send-psu-request`           | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
-| `send-pfp-request`           | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
-| `make-psu-request`           | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
+| CLI Command                  | Package                     | Purpose                                                                             |
+| ---------------------------- | --------------------------- | ----------------------------------------------------------------------------------- |
+| `generate-nhs-numbers`       | `nhs-number-generator`      | Generate/validate NHS numbers                                                       |
+| `generate-ods-codes`         | `ods-code-generator`        | Generate ODS organisation codes                                                     |
+| `generate-prescription-ids`  | `prescription-id-generator` | Generate prescription order numbers                                                 |
+| `create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                                            |
+| `fhir-prescribing`           | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions (with optional DSS signing) |
+| `fhir-dispensing`            | `fhir-dispensing`           | Release, return, dispense, and claim prescriptions via EPS FHIR Dispensing          |
+| `sign-prescription`          | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint                       |
+| `generate-psu-request`       | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles                              |
+| `send-psu-request`           | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                                            |
+| `send-pfp-request`           | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2                                 |
+| `make-psu-request`           | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending                   |
+| _(library only)_             | `signing-service`           | NHS Digital Signature Service (DSS) client for signing prescriptions                |
 
 ## Data Generation Tools
 
@@ -97,6 +99,8 @@ Performs EPS FHIR prescribing actions. Supports `create`, `cancel`, and `sign`.
 ```bash
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle.json
 fhir-prescribing --action create --input ./bundle.json --urid 555254240100
+fhir-prescribing --action create --input ./bundle.json --dss
+fhir-prescribing --action create --input ./bundle.json --dss --dss-mock
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle.json
 fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 ```
@@ -112,6 +116,9 @@ fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 | `--prepare-only`              | Return digest only (sign action)                     | `false`                |
 | `--user-restricted`           | Use CIS2 browser login instead of app-restricted JWT | `false`                |
 | `--user-type <type>`          | `prescriber` or `dispenser` (user-restricted mode)   | `prescriber`           |
+| `--dss`                       | Use NHS Digital Signature Service for signing        | `false`                |
+| `--dss-host <host>`           | Override DSS host (defaults to HOST env var)         | HOST env var           |
+| `--dss-mock`                  | Mock DSS presence check (auto-completes)             | `false`                |
 
 **Important:** `sign` only prepares and signs — does NOT submit. Use `create` for prepare + sign + submit.
 
@@ -133,6 +140,56 @@ sign-prescription --input ./bundle.json --algorithm RSA-SHA256
 | `--prepare-only`     | Return digest without signing         | `false`      |
 | `--user-restricted`  | Use CIS2 browser login                | `false`      |
 | `--user-type <type>` | `prescriber` or `dispenser`           | `prescriber` |
+
+## Dispensing Tools
+
+### `fhir-dispensing`
+
+Performs EPS FHIR dispensing actions. Supports `release`, `return`, `dispense`, and `claim`.
+
+```bash
+# Release (user-restricted)
+fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z
+
+# Release (app-restricted, no prescription-id needed)
+fhir-dispensing --action release --app-restricted --pharmacy-ods FA565
+
+# Return
+fhir-dispensing --action return --prescription-id 24F5DA-A83008-7EFE6Z --reason-code 0001
+
+# Dispense
+fhir-dispensing --action dispense --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/release-bundle.json
+
+# Claim
+fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/dispense-bundle.json
+fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./dispense.json --charge-exemption 0002
+```
+
+| Flag                               | Description                                          | Default                                           |
+| ---------------------------------- | ---------------------------------------------------- | ------------------------------------------------- |
+| `--action <action>`                | `release`, `return`, `dispense`, `withdraw`, `claim` | `release`                                         |
+| `--prescription-id <id>`           | Short-form prescription ID                           | required (except app-restricted release)          |
+| `--input <file>`                   | Path to request body JSON                            | optional for release, required for dispense/claim |
+| `--app-restricted`                 | Use app-restricted auth with `$release-unattended`   | `false`                                           |
+| `--pharmacy-ods <code>`            | Pharmacy ODS code override                           | auto-generated                                    |
+| `--save-dir <directory>`           | Directory to save response Bundle JSON               | `./data/prescriptions`                            |
+| `--urid <urid>`                    | NHSD-Session-URID override                           | optional                                          |
+| `--reason-code <code>`             | Return reason code (required for `return`)           | —                                                 |
+| `--reason-text <text>`             | Human-readable return reason text                    | default for code                                  |
+| `--reimbursement-authority <code>` | Reimbursement authority ODS code (for `dispense`)    | —                                                 |
+| `--dispense-type <code>`           | Dispense type code: `0001`–`0008`                    | `0001`                                            |
+| `--charge-exemption <code>`        | Prescription charge exemption code (for `claim`)     | `0001`                                            |
+| `--exemption-evidence <code>`      | `evidence-seen` or `no-evidence-seen` (for `claim`)  | `no-evidence-seen`                                |
+| `--claim-status <code>`            | Claim business status: `0004`–`0007` (for `claim`)   | `0006` (Dispensed)                                |
+| `--raw`                            | Send `--input` payload as-is                         | `false`                                           |
+| `--request-id <uuid>`              | Override X-Request-ID header                         | random UUID                                       |
+| `--correlation-id <uuid>`          | Override X-Correlation-ID header                     | random UUID                                       |
+
+**Return reason codes:** `0001`–`0009` (Patient not present, Identity unverified, Patient requested, Another dispenser requested, Unable to dispense, Expired, Cancelled, Not found, Item not available)
+
+**Charge exemption codes (for claim):** `0001`–`0015` (paid, under 16, 16-18 education, 60+, maternity, medical, pre-payment, war pension, HC2, contraceptives, income-based exemptions)
+
+**Claim status codes:** `0004` Cancelled, `0005` Expired, `0006` Dispensed, `0007` Not Dispensed
 
 ## PSU Tools
 

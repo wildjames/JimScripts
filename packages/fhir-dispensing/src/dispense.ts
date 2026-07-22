@@ -150,6 +150,7 @@ function resolveRequesterIdentifier(
   const requester = medRequest.requester as Record<string, unknown> | undefined;
   if (!requester) {
     return {
+      reference: "urn:uuid:unknown",
       identifier: {
         system: "https://fhir.nhs.uk/Id/sds-role-profile-id",
         value: "unknown",
@@ -159,7 +160,10 @@ function resolveRequesterIdentifier(
 
   // If already an identifier reference, use it directly
   if (requester.identifier) {
-    return { identifier: requester.identifier };
+    return {
+      reference: (requester.reference as string) ?? "urn:uuid:unknown",
+      identifier: requester.identifier,
+    };
   }
 
   // Resolve urn:uuid: reference to extract the SDS role profile ID
@@ -175,7 +179,10 @@ function resolveRequesterIdentifier(
         (id) => id.system === "https://fhir.nhs.uk/Id/sds-role-profile-id",
       );
       if (sdsId) {
-        return { identifier: { system: sdsId.system, value: sdsId.value } };
+        return {
+          reference: ref,
+          identifier: { system: sdsId.system, value: sdsId.value },
+        };
       }
     }
   }
@@ -188,7 +195,7 @@ function buildMedicationDispense(
   nhsNumber: string | undefined,
   patientDisplay: string | undefined,
   dispenseType: string,
-  medRequestFullUrl: string,
+  containedMedRequest: Record<string, unknown>,
   organizationFullUrl: string,
 ): Record<string, unknown> {
   const dispenseItemId = randomUUID();
@@ -214,16 +221,22 @@ function buildMedicationDispense(
     subject.display = patientDisplay;
   }
 
+  const containedMedRequestId = (containedMedRequest as Record<string, unknown>)
+    .id as string;
+
   return {
     resourceType: "MedicationDispense",
-    contained: [buildContainedPractitionerRole(organizationFullUrl)],
+    contained: [
+      buildContainedPractitionerRole(organizationFullUrl),
+      containedMedRequest,
+    ],
     extension: [
       {
         url: "https://fhir.nhs.uk/StructureDefinition/Extension-EPS-TaskBusinessStatus",
         valueCoding: {
           system: "https://fhir.nhs.uk/CodeSystem/EPS-task-business-status",
-          code: "0003",
-          display: "With Dispenser - Active",
+          code: "0006",
+          display: "Dispensed",
         },
       },
     ],
@@ -245,7 +258,7 @@ function buildMedicationDispense(
     ],
     authorizingPrescription: [
       {
-        reference: medRequestFullUrl,
+        reference: `#${containedMedRequestId}`,
       },
     ],
     type: {
@@ -359,6 +372,24 @@ function buildOrganization(
       },
     ],
     active: true,
+    name: `Test Pharmacy ${pharmacyOds}`,
+    telecom: [
+      {
+        system: "phone",
+        use: "work",
+        value: "01onal234567",
+      },
+    ],
+    address: [
+      {
+        use: "work",
+        type: "both",
+        line: ["1 Test Street"],
+        city: "Leeds",
+        district: "West Yorkshire",
+        postalCode: "LS1 1AA",
+      },
+    ],
     type: [
       {
         coding: [
@@ -399,13 +430,9 @@ export function generateDispenseNotificationBundle(
 
   const organizationFullUrl = `urn:uuid:${organizationId}`;
 
-  // Build paired MedicationRequest + MedicationDispense entries.
-  // The MedicationDispense.authorizingPrescription must reference the
-  // MedicationRequest entry's fullUrl within this bundle.
-  const pairedEntries = medicationRequests.map((mr) => {
-    const mrId = randomUUID();
-    const mrFullUrl = `urn:uuid:${mrId}`;
-
+  // Build MedicationDispense entries with MedicationRequest as contained resources.
+  // The MedicationDispense.authorizingPrescription references the contained MedicationRequest.
+  const dispenseEntries = medicationRequests.map((mr) => {
     const medRequestResource = buildMedicationRequestForDispense(
       mr,
       nhsNumber,
@@ -419,20 +446,14 @@ export function generateDispenseNotificationBundle(
       nhsNumber,
       patientDisplay,
       dispenseType,
-      mrFullUrl,
+      medRequestResource,
       organizationFullUrl,
     );
     const dispenseId = randomUUID();
     const dispenseFullUrl = `urn:uuid:${dispenseId}`;
 
-    return {
-      medRequest: { fullUrl: mrFullUrl, resource: medRequestResource },
-      dispense: { fullUrl: dispenseFullUrl, resource: dispenseResource },
-    };
+    return { fullUrl: dispenseFullUrl, resource: dispenseResource };
   });
-
-  const dispenseEntries = pairedEntries.map((p) => p.dispense);
-  const medRequestEntries = pairedEntries.map((p) => p.medRequest);
 
   // Build Organization entry
   const orgEntry = {
@@ -485,7 +506,6 @@ export function generateDispenseNotificationBundle(
         fullUrl: e.fullUrl,
         resource: e.resource,
       })),
-      ...medRequestEntries,
       orgEntry,
     ];
 

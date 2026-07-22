@@ -28,18 +28,20 @@ make install-playwright
 
 ## Tool Inventory
 
-| CLI Command                  | Package                     | Purpose                                                           |
-| ---------------------------- | --------------------------- | ----------------------------------------------------------------- |
-| `generate-nhs-numbers`       | `nhs-number-generator`      | Generate/validate NHS numbers                                     |
-| `generate-ods-codes`         | `ods-code-generator`        | Generate ODS organisation codes                                   |
-| `generate-prescription-ids`  | `prescription-id-generator` | Generate prescription order numbers                               |
-| `create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                          |
-| `fhir-prescribing`           | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions           |
-| `sign-prescription`          | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint     |
-| `generate-psu-request`       | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles            |
-| `send-psu-request`           | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                          |
-| `send-pfp-request`           | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2               |
-| `make-psu-request`           | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending |
+| CLI Command                  | Package                     | Purpose                                                                             |
+| ---------------------------- | --------------------------- | ----------------------------------------------------------------------------------- |
+| `generate-nhs-numbers`       | `nhs-number-generator`      | Generate/validate NHS numbers                                                       |
+| `generate-ods-codes`         | `ods-code-generator`        | Generate ODS organisation codes                                                     |
+| `generate-prescription-ids`  | `prescription-id-generator` | Generate prescription order numbers                                                 |
+| `create-prescription-bundle` | `create-fhir-prescription`  | Create FHIR prescription message bundles                                            |
+| `fhir-prescribing`           | `fhir-prescribing`          | Create, cancel, prepare, sign, and submit prescriptions (with optional DSS signing) |
+| `fhir-dispensing`            | `fhir-dispensing`           | Release, return, dispense, and claim prescriptions via EPS FHIR Dispensing          |
+| `sign-prescription`          | `prescription-signer`       | Prepare and sign FHIR prescriptions via the $prepare endpoint                       |
+| `generate-psu-request`       | `psu-request-generator`     | Generate PSU (Prescription Status Update) FHIR bundles                              |
+| `send-psu-request`           | `psu-request-sender`        | Send PSU bundles to the PSU API endpoint                                            |
+| `send-pfp-request`           | `pfp-request-sender`        | Fetch Prescriptions-for-Patients bundles via OAuth2                                 |
+| `make-psu-request`           | `psu-request-wizard`        | Interactive wizard combining PfP fetch and PSU generation/sending                   |
+| _(library only)_             | `signing-service`           | NHS Digital Signature Service (DSS) client for signing prescriptions                |
 
 ---
 
@@ -219,6 +221,10 @@ fhir-prescribing --action create --input ./data/prescriptions/prescription-bundl
 # Create with optional URID
 fhir-prescribing --action create --input ./bundle.json --urid 555254240100
 
+# Create using Digital Signature Service (DSS) instead of local key
+fhir-prescribing --action create --input ./bundle.json --dss
+fhir-prescribing --action create --input ./bundle.json --dss --dss-mock
+
 # Cancel: generate a cancellation bundle from an existing prescription
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle.json
 fhir-prescribing --action cancel --input ./bundle.json --save-dir ./data/prescriptions
@@ -237,6 +243,9 @@ fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 | `--prepare-only` | Call `$prepare` and return digest only (sign only) | `false` |
 | `--user-restricted` | Use CIS2 browser login (OAuth2 auth-code) instead of app-restricted JWT | `false` |
 | `--user-type <type>` | CIS2 user type for user-restricted mode: `prescriber` or `dispenser`. Use `prescriber` when the CIS2 login credential belongs to a prescribing clinician. Use `dispenser` when the credential belongs to a dispensing pharmacist. This affects which role/access scope is requested during the OAuth2 flow. | `prescriber` |
+| `--dss` | Use the NHS Digital Signature Service (DSS) for signing instead of local key | `false` |
+| `--dss-host <host>` | Override the DSS host (defaults to HOST env var) | HOST env var |
+| `--dss-mock` | Use mock mode for DSS presence check (auto-completes without smartcard) | `false` |
 
 **Environment variables (app-restricted mode, required for `create`/`sign`):**
 | Variable | Description | Required |
@@ -263,12 +272,20 @@ fhir-prescribing --action cancel --input ./bundle.json --cancel-reason-type 0003
 
 **What `create` does:**
 
-1. Authenticates with the APIM OAuth2 token endpoint using JWT client credentials
+1. Authenticates via CIS2 user-restricted OAuth2 flow (browser-automated)
 2. Sends the FHIR prescription Bundle to `POST /fhir-prescribing/FHIR/R4/$prepare`
 3. Extracts the digest from the `Parameters` response
-4. Signs the digest using RSA-SHA1 (or specified algorithm)
+4. Signs the digest using either a local private key (default) or the NHS Digital Signature Service (`--dss`)
 5. Adds a Provenance resource with the signature to the bundle
 6. Submits the signed bundle to `POST /fhir-prescribing/FHIR/R4/$process-message`
+
+**DSS signing flow (when `--dss` is used):**
+
+1. Creates a signed JWT containing the digest payload(s)
+2. POSTs to `/signing-service/signaturerequest` → receives a token + redirectUri
+3. Performs a presence check via browser redirect (skipped on sandbox, mocked with `--dss-mock`)
+4. GETs `/signing-service/signatureresponse/{token}` → receives signatures + X509 certificate
+5. The certificate is embedded in the Provenance resource's X509Certificate field
 
 **What `cancel` does to the bundle:**
 
@@ -390,7 +407,145 @@ const signature = signDigest(digest, privateKey, "RSA-SHA1");
 
 ---
 
-### 7. `generate-psu-request` — PSU Request Generator
+### 7. `fhir-dispensing` — FHIR Dispensing Actions
+
+Performs EPS FHIR dispensing actions on prescription bundles. Supports `release` (download prescriptions), `return` (return prescriptions to EPS), `dispense` (send dispense notifications), and `claim` (submit reimbursement claims).
+
+#### CLI
+
+```bash
+# Release: download a prescription from EPS (user-restricted)
+fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z
+
+# Release: unattended (app-restricted, no prescription-id needed)
+fhir-dispensing --action release --app-restricted --pharmacy-ods FA565
+
+# Return: return a prescription to EPS
+fhir-dispensing --action return --prescription-id 24F5DA-A83008-7EFE6Z --reason-code 0001
+
+# Dispense: send a dispense notification (requires released prescription bundle as input)
+fhir-dispensing --action dispense --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/release-bundle.json
+
+# Claim: submit a reimbursement claim (requires dispense notification bundle as input)
+fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/dispense-bundle.json
+fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./dispense.json --charge-exemption 0002
+```
+
+**Options:**
+| Flag | Description | Default |
+|---|---|---|
+| `--action <action>` | Dispensing action: `release`, `return`, `dispense`, `withdraw`, `claim` | `release` |
+| `--prescription-id <id>` | Short-form prescription ID | required (except app-restricted release) |
+| `--input <file>` | Path to request body JSON | optional for release, required for dispense/claim |
+| `--app-restricted` | Use app-restricted auth with `$release-unattended` | `false` |
+| `--pharmacy-ods <code>` | Pharmacy ODS code override | auto-generated |
+| `--save-dir <directory>` | Directory to save response Bundle JSON | `./data/prescriptions` |
+| `--urid <urid>` | NHSD-Session-URID override | optional |
+| `--reason-code <code>` | Return reason code (required for `return`) | — |
+| `--reason-text <text>` | Human-readable return reason text | default for code |
+| `--reimbursement-authority <code>` | Reimbursement authority ODS code (for `dispense`) | — |
+| `--dispense-type <code>` | Dispense type code: `0001`–`0008` | `0001` |
+| `--charge-exemption <code>` | Prescription charge exemption code (for `claim`) | `0001` |
+| `--exemption-evidence <code>` | `evidence-seen` or `no-evidence-seen` (for `claim`) | `no-evidence-seen` |
+| `--claim-status <code>` | Claim business status: `0004`–`0007` (for `claim`) | `0006` (Dispensed) |
+| `--raw` | Send `--input` payload as-is without normalization | `false` |
+| `--request-id <uuid>` | Override X-Request-ID header | random UUID |
+| `--correlation-id <uuid>` | Override X-Correlation-ID header | random UUID |
+
+**Return reason codes:**
+| Code | Description |
+|---|---|
+| `0001` | Patient not present |
+| `0002` | Patient identity could not be verified |
+| `0003` | Patient requested release |
+| `0004` | Another dispenser requested release on behalf of the patient |
+| `0005` | Prescription otherwise unable to be dispensed |
+| `0006` | Prescription expired |
+| `0007` | Prescription cancelled |
+| `0008` | Prescription not found |
+| `0009` | Prescription item was not available |
+
+**Charge exemption codes (for claim):**
+| Code | Description |
+|---|---|
+| `0001` | Patient has paid appropriate charges |
+| `0002` | is under 16 years of age |
+| `0003` | is 16, 17 or 18 and in full-time education |
+| `0004` | is 60 years of age or over |
+| `0005` | has a valid maternity exemption certificate |
+| `0006` | has a valid medical exemption certificate |
+| `0007` | has a valid prescription pre-payment certificate |
+| `0008` | has a valid War Pension exemption certificate |
+| `0009` | is named on a current HC2 charges certificate |
+| `0010` | was prescribed free-of-charge contraceptives |
+| `0011`–`0015` | Various income-based exemptions |
+
+**Claim status codes:**
+| Code | Description |
+|---|---|
+| `0004` | Cancelled |
+| `0005` | Expired |
+| `0006` | Dispensed |
+| `0007` | Not Dispensed |
+
+**Environment variables (user-restricted mode, default):**
+| Variable | Description | Required |
+|---|---|---|
+| `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
+| `DISPENSING_API_KEY` | OAuth client ID | yes |
+| `DISPENSING_APP_CLIENT_SECRET` | OAuth client secret | yes |
+| `DISPENSING_CALLBACK_URL` | OAuth callback URL | yes |
+| `HEADLESS` | Set `false` to show browser during login | optional |
+| `FIREFOX_TMP_DIR` | Browser profile directory | optional |
+
+**Environment variables (app-restricted mode, `--app-restricted`):**
+| Variable | Description | Required |
+|---|---|---|
+| `HOST` | e.g. `internal-dev.api.service.nhs.uk` | yes |
+| `DISPENSING_API_KEY` | APIM application API key | yes |
+| `DISPENSING_KID` | Key ID from APIM portal | yes |
+| `DISPENSING_PRIVATE_KEY` or `DISPENSING_PRIVATE_KEY_PATH` | PEM private key | one of these |
+
+**What `claim` does:**
+
+1. Takes a dispense notification bundle as input
+2. Extracts MedicationDispense resources and patient/prescription identifiers
+3. Builds a FHIR Claim resource with contained PractitionerRole and Organization
+4. Includes charge exemption, evidence, and business status codes
+5. Submits to `POST /fhir-dispensing/FHIR/R4/Claim`
+
+#### Programmatic API
+
+```typescript
+import {
+  releaseTask,
+  returnPrescription,
+  dispenseNotification,
+  submitClaim,
+  generateClaim,
+  CHARGE_EXEMPTION_CODES,
+  CLAIM_STATUS_CODES,
+  RETURN_REASON_CODES,
+  DISPENSE_TYPE_CODES,
+} from "fhir-dispensing";
+
+// Submit a claim from a dispense notification bundle
+const result = await submitClaim(
+  dispenseBundle,
+  {
+    prescriptionId: "24F5DA-A83008-7EFE6Z",
+    chargeExemption: "0001",
+    exemptionEvidence: "no-evidence-seen",
+    claimStatus: "0006",
+  },
+  { host, token, urid },
+);
+console.log(result.response.status);
+```
+
+---
+
+### 8. `generate-psu-request` — PSU Request Generator
 
 Generates FHIR Bundle resources containing Task entries for Prescription Status Updates.
 
@@ -441,7 +596,7 @@ const bundle = generateCreatePrescriptionBundle({
 
 ---
 
-### 8. `send-psu-request` — PSU Request Sender
+### 9. `send-psu-request` — PSU Request Sender
 
 Sends a PSU FHIR Bundle to the EPS PSU API endpoint using app-restricted (JWT/signed) authentication.
 
@@ -483,7 +638,7 @@ console.log(response.status);
 
 ---
 
-### 9. `send-pfp-request` — PfP Request Sender
+### 10. `send-pfp-request` — PfP Request Sender
 
 Fetches Prescriptions-for-Patients (PfP) bundles using the OAuth2 authorization-code flow. Uses Playwright to automate the NHS login in a browser.
 
@@ -533,7 +688,7 @@ const bundle = await fetchBundle(
 
 ---
 
-### 10. `make-psu-request` — PSU Request Wizard
+### 11. `make-psu-request` — PSU Request Wizard
 
 Interactive wizard that combines PfP fetching, PSU bundle generation, and optional sending. Three modes of operation:
 
@@ -648,28 +803,34 @@ generate-prescription-ids -n 3
 
 ## Environment Variable Summary
 
-| Variable                      | Used By                                                                                             | Description                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| `PRESCRIBE_API_KEY`           | `fhir-prescribing`, `sign-prescription`                                                             | APIM application API key (app-restricted mode)    |
-| `PRESCRIBE_KID`               | `fhir-prescribing`, `sign-prescription`                                                             | Key ID from APIM portal (app-restricted mode)     |
-| `PRESCRIBE_PRIVATE_KEY`       | `fhir-prescribing`, `sign-prescription`                                                             | PEM private key contents for digest signing       |
-| `PRESCRIBE_PRIVATE_KEY_PATH`  | `fhir-prescribing`, `sign-prescription`                                                             | Path to PEM private key file for digest signing   |
-| `PRESCRIBE_API_KEY`           | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client ID (user-restricted mode)            |
-| `PRESCRIBE_APP_CLIENT_SECRET` | `fhir-prescribing`, `sign-prescription`                                                             | OAuth client secret (user-restricted mode)        |
-| `PRESCRIBE_CALLBACK_URL`      | `fhir-prescribing`, `sign-prescription`                                                             | OAuth callback URL (user-restricted mode)         |
-| `API_KEY`                     | `send-psu-request`, `make-psu-request`                                                              | APIM application API key                          |
-| `HOST`                        | `fhir-prescribing`, `sign-prescription`, `send-psu-request`, `send-pfp-request`, `make-psu-request` | API host (e.g. `internal-dev.api.service.nhs.uk`) |
-| `PSU_KID`                     | `send-psu-request`, `make-psu-request`                                                              | Key ID from APIM portal                           |
-| `PRIVATE_KEY`                 | `send-psu-request`, `make-psu-request`                                                              | PEM private key contents                          |
-| `PSU_PRIVATE_KEY_PATH`        | `send-psu-request`, `make-psu-request`                                                              | Path to PEM private key file                      |
-| `PFP_API_KEY`                 | `send-pfp-request`, `make-psu-request`                                                              | OAuth client ID for PfP                           |
-| `PFP_CLIENT_SECRET`           | `send-pfp-request`, `make-psu-request`                                                              | OAuth client secret for PfP                       |
-| `REDIRECT_URI`                | `send-pfp-request`                                                                                  | OAuth redirect URI                                |
-| `AUTH_USERNAME`               | `send-pfp-request`                                                                                  | Mock NHS login username                           |
-| `FIREFOX_TMP_DIR`             | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request`     | Browser profile directory                         |
-| `HEADLESS`                    | `fhir-prescribing` (user-restricted), `sign-prescription` (user-restricted), `send-pfp-request`     | Show/hide browser (`true`/`false`)                |
-| `IS_PR`                       | `send-psu-request`                                                                                  | Target PR sandbox URL                             |
-| `PR_NUMBER`                   | `send-psu-request`                                                                                  | PR number for sandbox URL                         |
+| Variable                       | Used By                                                                                                                | Description                                                              |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `PRESCRIBE_API_KEY`            | `fhir-prescribing`, `sign-prescription`                                                                                | APIM application API key (app-restricted mode)                           |
+| `PRESCRIBE_KID`                | `fhir-prescribing`, `sign-prescription`                                                                                | Key ID from APIM portal (app-restricted mode)                            |
+| `PRESCRIBE_PRIVATE_KEY`        | `fhir-prescribing`, `sign-prescription`                                                                                | PEM private key contents for digest signing                              |
+| `PRESCRIBE_PRIVATE_KEY_PATH`   | `fhir-prescribing`, `sign-prescription`                                                                                | Path to PEM private key file for digest signing                          |
+| `PRESCRIBE_APP_CLIENT_SECRET`  | `fhir-prescribing`, `sign-prescription`                                                                                | OAuth client secret (user-restricted mode)                               |
+| `PRESCRIBE_CALLBACK_URL`       | `fhir-prescribing`, `sign-prescription`                                                                                | OAuth callback URL (user-restricted mode)                                |
+| `DSS_CALLBACK_URL`             | `fhir-prescribing`                                                                                                     | DSS presence check callback URL (falls back to `PRESCRIBE_CALLBACK_URL`) |
+| `DISPENSING_API_KEY`           | `fhir-dispensing`                                                                                                      | OAuth client ID / APIM API key for dispensing                            |
+| `DISPENSING_APP_CLIENT_SECRET` | `fhir-dispensing`                                                                                                      | OAuth client secret (user-restricted mode)                               |
+| `DISPENSING_CALLBACK_URL`      | `fhir-dispensing`                                                                                                      | OAuth callback URL (user-restricted mode)                                |
+| `DISPENSING_KID`               | `fhir-dispensing`                                                                                                      | Key ID from APIM portal (app-restricted mode)                            |
+| `DISPENSING_PRIVATE_KEY`       | `fhir-dispensing`                                                                                                      | PEM private key (app-restricted mode)                                    |
+| `DISPENSING_PRIVATE_KEY_PATH`  | `fhir-dispensing`                                                                                                      | Path to PEM private key file (app-restricted mode)                       |
+| `API_KEY`                      | `send-psu-request`, `make-psu-request`                                                                                 | APIM application API key                                                 |
+| `HOST`                         | `fhir-prescribing`, `fhir-dispensing`, `sign-prescription`, `send-psu-request`, `send-pfp-request`, `make-psu-request` | API host (e.g. `internal-dev.api.service.nhs.uk`)                        |
+| `PSU_KID`                      | `send-psu-request`, `make-psu-request`                                                                                 | Key ID from APIM portal                                                  |
+| `PRIVATE_KEY`                  | `send-psu-request`, `make-psu-request`                                                                                 | PEM private key contents                                                 |
+| `PSU_PRIVATE_KEY_PATH`         | `send-psu-request`, `make-psu-request`                                                                                 | Path to PEM private key file                                             |
+| `PFP_API_KEY`                  | `send-pfp-request`, `make-psu-request`                                                                                 | OAuth client ID for PfP                                                  |
+| `PFP_CLIENT_SECRET`            | `send-pfp-request`, `make-psu-request`                                                                                 | OAuth client secret for PfP                                              |
+| `REDIRECT_URI`                 | `send-pfp-request`                                                                                                     | OAuth redirect URI                                                       |
+| `AUTH_USERNAME`                | `send-pfp-request`                                                                                                     | Mock NHS login username                                                  |
+| `FIREFOX_TMP_DIR`              | `fhir-prescribing`, `fhir-dispensing`, `sign-prescription`, `send-pfp-request`                                         | Browser profile directory                                                |
+| `HEADLESS`                     | `fhir-prescribing`, `fhir-dispensing`, `sign-prescription`, `send-pfp-request`                                         | Show/hide browser (`true`/`false`)                                       |
+| `IS_PR`                        | `send-psu-request`, `fhir-dispensing`                                                                                  | Target PR sandbox URL                                                    |
+| `PR_NUMBER`                    | `send-psu-request`, `fhir-dispensing`                                                                                  | PR number for sandbox URL                                                |
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: eps-typescript-tools
-description: "Use when: working on NHS EPS tooling in this repository, including generating NHS numbers or ODS codes, creating/signing/cancelling FHIR prescription bundles, generating/sending PSU bundles, running PfP flows, and checking required auth environment variables."
+description: "Use when: working on NHS EPS tooling in this repository, including generating NHS numbers or ODS codes, creating/signing/cancelling FHIR prescription bundles, releasing/dispensing/claiming prescriptions, using the Digital Signature Service (DSS), generating/sending PSU bundles, running PfP flows, and checking required auth environment variables."
 ---
 
 # EPS TypeScript Tools
@@ -29,18 +29,19 @@ Note that environment variables are required, but not all need to be set for eve
 
 ## Quick Reference
 
-| CLI Command                  | Purpose                                              |
-| ---------------------------- | ---------------------------------------------------- |
-| `generate-nhs-numbers`       | Generate/validate NHS numbers                        |
-| `generate-ods-codes`         | Generate ODS organisation codes                      |
-| `generate-prescription-ids`  | Generate prescription order numbers                  |
-| `create-prescription-bundle` | Create FHIR prescription message bundles             |
-| `fhir-prescribing`           | Create, cancel, sign, and submit prescriptions       |
-| `sign-prescription`          | Prepare and sign prescriptions via $prepare endpoint |
-| `generate-psu-request`       | Generate PSU FHIR bundles                            |
-| `send-psu-request`           | Send PSU bundles to PSU API                          |
-| `send-pfp-request`           | Fetch Prescriptions-for-Patients bundles             |
-| `make-psu-request`           | Interactive wizard: PfP fetch + PSU gen/send         |
+| CLI Command                  | Purpose                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `generate-nhs-numbers`       | Generate/validate NHS numbers                                              |
+| `generate-ods-codes`         | Generate ODS organisation codes                                            |
+| `generate-prescription-ids`  | Generate prescription order numbers                                        |
+| `create-prescription-bundle` | Create FHIR prescription message bundles                                   |
+| `fhir-prescribing`           | Create, cancel, sign, and submit prescriptions (with optional DSS signing) |
+| `fhir-dispensing`            | Release, return, dispense, and claim prescriptions                         |
+| `sign-prescription`          | Prepare and sign prescriptions via $prepare endpoint                       |
+| `generate-psu-request`       | Generate PSU FHIR bundles                                                  |
+| `send-psu-request`           | Send PSU bundles to PSU API                                                |
+| `send-pfp-request`           | Fetch Prescriptions-for-Patients bundles                                   |
+| `make-psu-request`           | Interactive wizard: PfP fetch + PSU gen/send                               |
 
 For full CLI options and flags, see [Tool Inventory](./references/tool-inventory.md).
 
@@ -54,8 +55,25 @@ generate-ods-codes -n 5
 create-prescription-bundle --nhs-number 9998481732 --count 2
 fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json
 
+# Create + submit using Digital Signature Service (DSS) instead of local key
+fhir-prescribing --action create --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json --dss
+fhir-prescribing --action create --input ./bundle.json --dss --dss-mock
+
 # Cancel prescription
 fhir-prescribing --action cancel --input ./data/prescriptions/prescription-bundle_<timestamp>_nhs-num-9998481732.json
+
+# Release a prescription (dispensing)
+fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z
+fhir-dispensing --action release --app-restricted --pharmacy-ods FA565
+
+# Dispense a prescription
+fhir-dispensing --action dispense --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/release-bundle.json
+
+# Submit a reimbursement claim
+fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/dispense-bundle.json
+
+# Return a prescription
+fhir-dispensing --action return --prescription-id 24F5DA-A83008-7EFE6Z --reason-code 0001
 
 # Generate and send PSU
 generate-psu-request --business-status "With Pharmacy" -o psu.json
@@ -75,6 +93,9 @@ Key groups:
 
 - **Prescribing (app-restricted):** `HOST`, `PRESCRIBE_API_KEY`, `PRESCRIBE_KID`, `PRESCRIBE_PRIVATE_KEY`/`PRESCRIBE_PRIVATE_KEY_PATH`
 - **Prescribing (user-restricted):** `HOST`, `PRESCRIBE_API_KEY`, `PRESCRIBE_APP_CLIENT_SECRET`, `PRESCRIBE_CALLBACK_URL`, plus private key
+- **Prescribing (DSS signing):** additionally `PRESCRIBE_KID`, optionally `DSS_CALLBACK_URL`
+- **Dispensing (user-restricted):** `HOST`, `DISPENSING_API_KEY`, `DISPENSING_APP_CLIENT_SECRET`, `DISPENSING_CALLBACK_URL`
+- **Dispensing (app-restricted):** `HOST`, `DISPENSING_API_KEY`, `DISPENSING_KID`, `DISPENSING_PRIVATE_KEY`/`DISPENSING_PRIVATE_KEY_PATH`
 - **PSU sending:** `HOST`, `API_KEY`, `PSU_KID`, `PRIVATE_KEY`/`PSU_PRIVATE_KEY_PATH`
 - **PfP fetching:** `HOST`, `PFP_API_KEY`, `PFP_CLIENT_SECRET`
 
