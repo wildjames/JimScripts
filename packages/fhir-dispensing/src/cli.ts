@@ -376,11 +376,6 @@ async function main(): Promise<void> {
     `Response: ${result.response.status} ${result.response.statusText}`,
   );
 
-  if (result.response.status >= 400) {
-    console.log(JSON.stringify(result.responseBody, null, 2));
-    throw new Error(`Task ${action} request failed`);
-  }
-
   const bundlePath = saveResponse(
     action,
     result.responseBody as BundleLike,
@@ -389,6 +384,11 @@ async function main(): Promise<void> {
     result.correlationId,
   );
   console.log(bundlePath);
+
+  if (result.response.status >= 400) {
+    console.log(JSON.stringify(result.responseBody, null, 2));
+    throw new Error(`Task ${action} request failed`);
+  }
 }
 
 main().catch((error: unknown) => {
