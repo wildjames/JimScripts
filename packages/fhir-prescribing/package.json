@@ -21,7 +21,8 @@
     "eps-auth": "^0.1.0",
     "fhir-create-prescription-generator": "^0.1.0",
     "dotenv": "^16.4.5",
-    "nhs-number-utils": "*"
+    "nhs-number-utils": "*",
+    "signing-service": "^0.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",

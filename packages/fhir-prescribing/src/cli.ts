@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import crypto from "crypto";
 import { Command } from "commander";
 import { config } from "dotenv";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
@@ -19,7 +20,12 @@ import {
   addProvenanceToBundle,
 } from "./index.js";
 import { getEnv, loadPrivateKey } from "./utils.js";
-import { obtainUserRestrictedAccessToken, type Cis2UserType } from "eps-auth";
+import { signWithDss } from "signing-service";
+import {
+  obtainUserRestrictedAccessToken,
+  CIS2_USERS,
+  type Cis2UserType,
+} from "eps-auth";
 
 function readInputBundle(filePath: string): BundleLike {
   const content = readFileSync(filePath, "utf-8");
@@ -71,6 +77,8 @@ async function handleCreate(options: {
   urid?: string;
   algorithm?: string;
   userType?: string;
+  dss?: boolean;
+  dssHost?: string;
 }): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
@@ -103,6 +111,46 @@ async function handleCreate(options: {
           inputBundle,
           urid,
         );
+
+        if (options.dss) {
+          const kid = getEnv("PRESCRIBE_KID");
+          const dssCallbackUrl = process.env.DSS_CALLBACK_URL ?? redirectUri;
+          const sdsUserId = CIS2_USERS[userType].userId;
+          const payloadId = crypto.randomUUID();
+          const dssHost = options.dssHost ?? host;
+
+          const dssResult = await signWithDss({
+            host: dssHost,
+            accessToken,
+            apiKey: clientId,
+            kid,
+            privateKey,
+            sdsUserId,
+            digests: [{ id: payloadId, payload: digest }],
+            callbackUrl: dssCallbackUrl,
+            mock: true,
+          });
+
+          const dssSignature =
+            dssResult.signatures.find((s) => s.id === payloadId) ??
+            (dssResult.signatures.length === 1
+              ? dssResult.signatures[0]
+              : undefined);
+          if (!dssSignature) {
+            throw new Error(
+              "DSS did not return a signature for the requested payload",
+            );
+          }
+
+          return addProvenanceToBundle(
+            inputBundle,
+            digest,
+            dssSignature.signature,
+            timestamp,
+            dssResult.certificate,
+          );
+        }
+
         const signature = signDigest(digest, privateKey, options.algorithm);
 
         return addProvenanceToBundle(inputBundle, digest, signature, timestamp);
@@ -224,6 +272,8 @@ async function handleSign(options: {
   algorithm?: string;
   prepareOnly?: boolean;
   userType?: string;
+  dss?: boolean;
+  dssHost?: string;
 }): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
@@ -261,17 +311,64 @@ async function handleSign(options: {
       token,
       bundle,
     );
-    const signature = signDigest(digest, privateKey, options.algorithm);
+
+    let signature: string;
+    let certificate: string | undefined;
+
+    if (options.dss) {
+      const clientId = getEnv("PRESCRIBE_API_KEY");
+      const kid = getEnv("PRESCRIBE_KID");
+      const dssCallbackUrl =
+        process.env.DSS_CALLBACK_URL ??
+        process.env.PRESCRIBE_CALLBACK_URL ??
+        "";
+      const sdsUserId = CIS2_USERS[userType].userId;
+      const payloadId = crypto.randomUUID();
+      const dssHost = options.dssHost ?? host;
+
+      const dssResult = await signWithDss({
+        host: dssHost,
+        accessToken: token,
+        apiKey: clientId,
+        kid,
+        privateKey,
+        sdsUserId,
+        digests: [{ id: payloadId, payload: digest }],
+        callbackUrl: dssCallbackUrl,
+        mock: true,
+      });
+
+      const dssSignature =
+        dssResult.signatures.find((s) => s.id === payloadId) ??
+        (dssResult.signatures.length === 1
+          ? dssResult.signatures[0]
+          : undefined);
+      if (!dssSignature) {
+        throw new Error(
+          "DSS did not return a signature for the requested payload",
+        );
+      }
+
+      signature = dssSignature.signature;
+      certificate = dssResult.certificate;
+    } else {
+      signature = signDigest(digest, privateKey, options.algorithm);
+    }
+
     const signedBundle = addProvenanceToBundle(
       bundle,
       digest,
       signature,
       timestamp,
+      certificate,
     );
 
     console.log("Digest:", digest);
     console.log("Signature:", signature);
     console.log("Timestamp:", timestamp);
+    if (certificate) {
+      console.log("Certificate: (from DSS)");
+    }
 
     const outputPath = savePayload(
       "sign",
@@ -324,6 +421,15 @@ async function main(): Promise<void> {
       "--user-type <type>",
       "CIS2 user type: prescriber or dispenser (user-restricted only)",
       "prescriber",
+    )
+    .option(
+      "--dss",
+      "Use the NHS Digital Signature Service (DSS) for signing instead of local key",
+      false,
+    )
+    .option(
+      "--dss-host <host>",
+      "Override the DSS host (defaults to HOST env var; use sandbox.api.service.nhs.uk for sandbox testing)",
     );
 
   program.parse();
@@ -337,6 +443,8 @@ async function main(): Promise<void> {
     prepareOnly?: boolean;
     userRestricted?: boolean;
     userType?: string;
+    dss?: boolean;
+    dssHost?: string;
   }>();
 
   const action = parseAction(opts.action.toLowerCase());

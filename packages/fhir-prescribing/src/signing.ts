@@ -1,7 +1,7 @@
-import {createSign} from "crypto";
+import { createSign } from "crypto";
 
-import {preparePrescription} from "./prepare.js";
-import type {SignResult} from "./types.js";
+import { preparePrescription } from "./prepare.js";
+import type { SignResult } from "./types.js";
 
 /**
  * Detect the signing algorithm from the $prepare digest XML.
@@ -20,7 +20,7 @@ export function detectAlgorithmFromDigest(digest: string): string {
 export function signDigest(
   digest: string,
   privateKey: string,
-  algorithm?: string
+  algorithm?: string,
 ): string {
   const algo = algorithm ?? detectAlgorithmFromDigest(digest);
   // Per NHS guidance Step 2: "Sign the base64 encoded signed info block"
@@ -38,9 +38,14 @@ export async function prepareAndSign(
   bundle: unknown,
   privateKey: string,
   urid?: string,
-  algorithm?: string
+  algorithm?: string,
 ): Promise<SignResult> {
-  const {digest, timestamp} = await preparePrescription(host, token, bundle, urid);
+  const { digest, timestamp } = await preparePrescription(
+    host,
+    token,
+    bundle,
+    urid,
+  );
   const signature = signDigest(digest, privateKey, algorithm);
-  return {digest, signature, timestamp};
+  return { digest, signature, timestamp };
 }

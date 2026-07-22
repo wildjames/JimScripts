@@ -6,18 +6,32 @@ export {
   type CreatePrescriptionUserRestrictedOptions,
   type CreatePrescriptionResult,
   type PrepareResult,
-  type SignResult
+  type SignResult,
 } from "./types.js";
 
-export {cloneBundle, getEnv, loadPrivateKey, loadBundle} from "./utils.js";
+export { cloneBundle, getEnv, loadPrivateKey, loadBundle } from "./utils.js";
 
-export {sendFhirRequest, type FhirRequestOptions, type FhirRequestResult} from "./http.js";
+export {
+  sendFhirRequest,
+  type FhirRequestOptions,
+  type FhirRequestResult,
+} from "./http.js";
 
-export {preparePrescription} from "./prepare.js";
+export { preparePrescription } from "./prepare.js";
 
-export {signDigest, prepareAndSign, detectAlgorithmFromDigest} from "./signing.js";
+export {
+  signDigest,
+  prepareAndSign,
+  detectAlgorithmFromDigest,
+} from "./signing.js";
 
-export {addProvenanceToBundle} from "./provenance.js";
+export { addProvenanceToBundle } from "./provenance.js";
+
+export {
+  signWithDss,
+  type DssSigningOptions,
+  type DssSignatureResult,
+} from "signing-service";
 
 export {
   createCancellationBundle,
@@ -25,7 +39,7 @@ export {
   parseCancellationReasonType,
   CANCELLATION_REASON_TYPES,
   type CancellationOptions,
-  type CancellationReasonType
+  type CancellationReasonType,
 } from "./cancel.js";
 
-export {submitPrescriptionWithToken} from "./create.js";
+export { submitPrescriptionWithToken } from "./create.js";
