@@ -29,6 +29,15 @@ export {
 } from "./dispense.js";
 
 export {
+  generateClaim,
+  submitClaim,
+  CHARGE_EXEMPTION_CODES,
+  CLAIM_STATUS_CODES,
+  type ClaimOptions,
+  type ClaimRequestOptions,
+} from "./claim.js";
+
+export {
   getEnv,
   loadPrivateKey,
   loadParameters,

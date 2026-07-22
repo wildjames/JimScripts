@@ -6,14 +6,34 @@ export function addProvenanceToBundle(
   bundle: BundleLike,
   digest: string,
   signature: string,
-  timestamp: string
+  timestamp: string,
+  certificate?: string
 ): BundleLike {
   const output = cloneBundle(bundle);
 
+  // digest is the base64-encoded <SignedInfo> XML from $prepare.
+  // Strip the xmlns attribute from <SignedInfo> per NHS guidance Step 3:
+  // "decoded signed info block with the xmlns attribute removed"
+  const decodedSignedInfo = Buffer.from(digest, "base64").toString("utf-8");
+  const signedInfoClean = decodedSignedInfo.replace(
+    /<SignedInfo xmlns="http:\/\/www\.w3\.org\/2000\/09\/xmldsig#">/,
+    "<SignedInfo>"
+  );
+
+  // Extract certificate body (strip PEM headers/whitespace) if provided
+  const certBody = certificate
+    ? certificate
+        .replace(/-----BEGIN CERTIFICATE-----/g, "")
+        .replace(/-----END CERTIFICATE-----/g, "")
+        .replace(/\s/g, "")
+    : "";
+
+  // Build the Signature XML matching the NHS example format
   const signatureXml = Buffer.from(
     `<Signature xmlns="http://www.w3.org/2000/09/xmldsig#">` +
-    `<SignedInfo><DigestValue>${digest}</DigestValue></SignedInfo>` +
+    signedInfoClean +
     `<SignatureValue>${signature}</SignatureValue>` +
+    `<KeyInfo><X509Data><X509Certificate>${certBody}</X509Certificate></X509Data></KeyInfo>` +
     `</Signature>`
   ).toString("base64");
 

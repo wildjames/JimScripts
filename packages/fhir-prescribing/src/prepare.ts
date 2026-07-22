@@ -31,8 +31,10 @@ export async function preparePrescription(
     throw new Error("$prepare response missing digest parameter");
   }
 
+  const timestampParam = parameters.parameter.find(p => p.name === "timestamp");
+
   return {
     digest: digestParam.valueString,
-    timestamp: new Date().toISOString()
+    timestamp: timestampParam?.valueString ?? new Date().toISOString()
   };
 }

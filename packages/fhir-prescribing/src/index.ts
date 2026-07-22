@@ -15,7 +15,7 @@ export {sendFhirRequest, type FhirRequestOptions, type FhirRequestResult} from "
 
 export {preparePrescription} from "./prepare.js";
 
-export {signDigest, prepareAndSign} from "./signing.js";
+export {signDigest, prepareAndSign, detectAlgorithmFromDigest} from "./signing.js";
 
 export {addProvenanceToBundle} from "./provenance.js";
 

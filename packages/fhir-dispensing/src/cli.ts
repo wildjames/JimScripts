@@ -17,6 +17,7 @@ import {
 import { releaseTask } from "./release.js";
 import { returnPrescription, RETURN_REASON_CODES } from "./return.js";
 import { dispenseNotification, DISPENSE_TYPE_CODES } from "./dispense.js";
+import { submitClaim, CHARGE_EXEMPTION_CODES } from "./claim.js";
 import {
   getEnv,
   loadParameters,
@@ -104,6 +105,21 @@ async function main(): Promise<void> {
       "0001",
     )
     .option(
+      "--charge-exemption <code>",
+      "Prescription charge exemption code (for claim action, default: 0001)",
+      "0001",
+    )
+    .option(
+      "--exemption-evidence <code>",
+      "Exemption evidence code: evidence-seen or no-evidence-seen (for claim action)",
+      "no-evidence-seen",
+    )
+    .option(
+      "--claim-status <code>",
+      "Claim business status code: 0004-0007 (for claim action, default: 0006 = Dispensed)",
+      "0006",
+    )
+    .option(
       "--raw",
       "Send the --input file payload as-is without any normalization (for replaying exact requests)",
       false,
@@ -130,6 +146,9 @@ async function main(): Promise<void> {
     reasonText?: string;
     reimbursementAuthority?: string;
     dispenseType?: string;
+    chargeExemption?: string;
+    exemptionEvidence?: string;
+    claimStatus?: string;
     raw?: boolean;
     requestId?: string;
     correlationId?: string;
@@ -311,8 +330,42 @@ async function main(): Promise<void> {
     }
     case "withdraw":
       throw new Error("Action 'withdraw' is not implemented yet");
-    case "claim":
-      throw new Error("Action 'claim' is not implemented yet");
+    case "claim": {
+      if (!options.input) {
+        throw new Error(
+          "--input is required for action 'claim' (path to dispense notification bundle)",
+        );
+      }
+      if (options.appRestricted) {
+        throw new Error(
+          "Action 'claim' only supports user-restricted authentication",
+        );
+      }
+      const claimInputBundle = loadParameters(options.input) as Record<
+        string,
+        unknown
+      > & { resourceType: "Bundle" };
+      result = await submitClaim(
+        claimInputBundle as Parameters<typeof submitClaim>[0],
+        {
+          prescriptionId: options.prescriptionId!,
+          pharmacyOds: options.pharmacyOds,
+          dispenseType: options.dispenseType,
+          chargeExemption: options.chargeExemption,
+          exemptionEvidence: options.exemptionEvidence,
+          claimStatus: options.claimStatus,
+        },
+        {
+          host,
+          token,
+          urid,
+          requestSaveDir: options.saveDir,
+          requestId: options.requestId,
+          correlationId: options.correlationId,
+        },
+      );
+      break;
+    }
     default:
       throw new Error(`Unknown action '${action}'`);
   }
