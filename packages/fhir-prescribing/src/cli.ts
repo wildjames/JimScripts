@@ -79,6 +79,7 @@ async function handleCreate(options: {
   userType?: string;
   dss?: boolean;
   dssHost?: string;
+  dssMock?: boolean;
 }): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
@@ -105,7 +106,7 @@ async function handleCreate(options: {
   )
     ? inputBundle
     : await (async () => {
-        const { digest, timestamp } = await preparePrescription(
+        const { digest, timestamp, algorithm } = await preparePrescription(
           host,
           accessToken,
           inputBundle,
@@ -127,8 +128,9 @@ async function handleCreate(options: {
             privateKey,
             sdsUserId,
             digests: [{ id: payloadId, payload: digest }],
+            algorithm,
             callbackUrl: dssCallbackUrl,
-            mock: true,
+            mock: options.dssMock,
           });
 
           const dssSignature =
@@ -274,6 +276,7 @@ async function handleSign(options: {
   userType?: string;
   dss?: boolean;
   dssHost?: string;
+  dssMock?: boolean;
 }): Promise<void> {
   const privateKey = loadPrivateKey();
   const host = getEnv("HOST");
@@ -306,7 +309,7 @@ async function handleSign(options: {
     );
     console.log(JSON.stringify({ digest, timestamp }, null, 2));
   } else {
-    const { digest, timestamp } = await preparePrescription(
+    const { digest, timestamp, algorithm } = await preparePrescription(
       host,
       token,
       bundle,
@@ -334,8 +337,9 @@ async function handleSign(options: {
         privateKey,
         sdsUserId,
         digests: [{ id: payloadId, payload: digest }],
+        algorithm,
         callbackUrl: dssCallbackUrl,
-        mock: true,
+        mock: options.dssMock,
       });
 
       const dssSignature =
@@ -430,6 +434,11 @@ async function main(): Promise<void> {
     .option(
       "--dss-host <host>",
       "Override the DSS host (defaults to HOST env var; use sandbox.api.service.nhs.uk for sandbox testing)",
+    )
+    .option(
+      "--dss-mock",
+      "Use mock mode for DSS presence check (auto-completes without smartcard; produces dummy signatures)",
+      false,
     );
 
   program.parse();
@@ -445,6 +454,7 @@ async function main(): Promise<void> {
     userType?: string;
     dss?: boolean;
     dssHost?: string;
+    dssMock?: boolean;
   }>();
 
   const action = parseAction(opts.action.toLowerCase());

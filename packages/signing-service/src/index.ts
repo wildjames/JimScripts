@@ -12,6 +12,7 @@ export interface DssSigningOptions {
   privateKey: string;
   sdsUserId: string;
   digests: Array<{ id: string; payload: string }>;
+  algorithm?: string;
   callbackUrl: string;
   mock?: boolean;
   headless?: boolean;
@@ -34,28 +35,23 @@ function createSignatureRequestJwt(options: {
   sdsUserId: string;
   signingServiceUrl: string;
   digests: Array<{ id: string; payload: string }>;
+  algorithm?: string;
 }): string {
-  const now = Math.floor(Date.now() / 1000);
+  const payload: Record<string, unknown> = {
+    payloads: options.digests,
+  };
+  if (options.algorithm) {
+    payload.algorithm = options.algorithm;
+  }
 
-  return jwt.sign(
-    {
-      iss: options.apiKey,
-      sub: options.sdsUserId,
-      aud: options.signingServiceUrl,
-      exp: now + 600,
-      iat: now,
-      algorithm: "RS256",
-      payloads: options.digests,
-    },
-    options.privateKey,
-    {
-      header: {
-        typ: "JWT",
-        kid: options.kid,
-        alg: "RS512",
-      },
-    },
-  );
+  return jwt.sign(payload, options.privateKey, {
+    algorithm: "RS512",
+    keyid: options.kid,
+    issuer: options.apiKey,
+    subject: options.sdsUserId,
+    audience: options.signingServiceUrl,
+    expiresIn: 600,
+  });
 }
 
 async function requestSignatures(
@@ -198,6 +194,7 @@ export async function signWithDss(
     sdsUserId: options.sdsUserId,
     signingServiceUrl,
     digests: options.digests,
+    algorithm: options.algorithm,
   });
 
   // Step 2: Request signatures from DSS

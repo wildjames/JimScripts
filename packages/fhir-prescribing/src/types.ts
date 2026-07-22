@@ -1,12 +1,9 @@
-export const SUPPORTED_ACTIONS = [
-  "create",
-  "cancel",
-  "sign"
-] as const;
+export const SUPPORTED_ACTIONS = ["create", "cancel", "sign"] as const;
 
 export interface PrepareResult {
   digest: string;
   timestamp: string;
+  algorithm?: string;
 }
 
 export interface SignResult {
@@ -37,7 +34,7 @@ export interface BundleLike {
       focus?: unknown[];
       status?: string;
       statusReason?: unknown;
-      identifier?: Array<{system?: string; value?: string}>;
+      identifier?: Array<{ system?: string; value?: string }>;
     };
   }>;
 }

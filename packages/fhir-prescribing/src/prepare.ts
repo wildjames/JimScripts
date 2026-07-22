@@ -7,7 +7,7 @@ export async function preparePrescription(
   token: string,
   bundle: unknown,
   urid?: string,
-): Promise<{ digest: string; timestamp: string }> {
+): Promise<{ digest: string; timestamp: string; algorithm?: string }> {
   const { response } = await sendFhirRequest({
     host,
     path: "/fhir-prescribing/FHIR/R4/$prepare",
@@ -37,8 +37,13 @@ export async function preparePrescription(
     (p) => p.name === "timestamp",
   );
 
+  const algorithmParam = parameters.parameter.find(
+    (p) => p.name === "algorithm",
+  );
+
   return {
     digest: digestParam.valueString,
     timestamp: timestampParam?.valueString ?? new Date().toISOString(),
+    algorithm: algorithmParam?.valueString,
   };
 }
