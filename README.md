@@ -18,11 +18,44 @@ their prescription IDs" and it will do it.
 
 ## Setup
 
+Create a `.env` file and populate it:
+
+```bash
+export HOST=internal-dev.api.service.nhs.uk
+
+export IS_PR=false
+export PR_NUMBER=1234
+
+export PFP_API_KEY=
+export PFP_CLIENT_SECRET=
+
+export PRESCRIBE_API_KEY=
+export PRESCRIBE_APP_CLIENT_SECRET=
+export PRESCRIBE_CALLBACK_URL=
+export PRESCRIBE_KID=
+export PRESCRIBE_PRIVATE_KEY_PATH=
+
+export DISPENSING_API_KEY=
+export DISPENSING_APP_CLIENT_SECRET=
+export DISPENSING_CALLBACK_URL=
+export DISPENSING_KID=
+export DISPENSING_PRIVATE_KEY_PATH=
+
+export PSU_KID=
+export PSU_API_KEY=
+export PSU_PRIVATE_KEY_PATH=
+```
+
+You can create JWKS data with the `generate_DoS_app_keys.sh` script. This also creates the public key URL for you to set in the [Digital Onboarding Service](https://dos-internal.ptl.api.platform.nhs.uk/MyApplications), and you can set the key path in the environment file accordingly.
+
+Remember to give your app the necessary permissions! At time of writing, the onboarding service is bugged in Dev such that it won't show the main branch deployments, so you'll need to do that in [Apigee](https://apigee.com/organizations/nhsd-nonprod/apps) instead.
+
+Then, install and build the tools.
+The next few steps should be done automatically by the devcontainer, so it's easier to do that.
 From the repository root:
 
 ```bash
 make install
-make build
 make link
 ```
 
