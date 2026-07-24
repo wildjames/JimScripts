@@ -43,7 +43,20 @@ Note that environment variables are required, but not all need to be set for eve
 | `send-pfp-request`           | Fetch Prescriptions-for-Patients bundles                                   |
 | `make-psu-request`           | Interactive wizard: PfP fetch + PSU gen/send                               |
 
-For full CLI options and flags, see [Tool Inventory](./references/tool-inventory.md).
+Each tool has its own detailed reference file under [tools/](./tools/):
+
+- [generate-nhs-numbers](./tools/generate-nhs-numbers.md)
+- [generate-ods-codes](./tools/generate-ods-codes.md)
+- [generate-prescription-ids](./tools/generate-prescription-ids.md)
+- [create-prescription-bundle](./tools/create-prescription-bundle.md)
+- [fhir-prescribing](./tools/fhir-prescribing.md)
+- [fhir-dispensing](./tools/fhir-dispensing.md)
+- [sign-prescription](./tools/sign-prescription.md)
+- [generate-psu-request](./tools/generate-psu-request.md)
+- [send-psu-request](./tools/send-psu-request.md)
+- [send-pfp-request](./tools/send-pfp-request.md)
+- [make-psu-request](./tools/make-psu-request.md)
+- [signing-service](./tools/signing-service.md) _(library only)_
 
 ## Key Workflows
 
@@ -103,7 +116,7 @@ Full variable reference: [Environment Variables](./references/environment-variab
 
 ## Programmatic APIs
 
-All packages export TypeScript APIs. See [Programmatic APIs](./references/programmatic-apis.md) for import examples.
+All packages export TypeScript APIs. See each tool's reference file under [tools/](./tools/) for import examples.
 
 ## Data Directories
 
