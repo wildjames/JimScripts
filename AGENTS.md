@@ -429,6 +429,10 @@ fhir-dispensing --action dispense --prescription-id 24F5DA-A83008-7EFE6Z --input
 # Claim: submit a reimbursement claim (requires dispense notification bundle as input)
 fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./data/prescriptions/dispense-bundle.json
 fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./dispense.json --charge-exemption 0002
+
+# Withdraw: withdraw a dispense notification
+fhir-dispensing --action withdraw --prescription-id 24F5DA-A83008-7EFE6Z --reason-code MU
+fhir-dispensing --action withdraw --prescription-id 24F5DA-A83008-7EFE6Z --reason-code DA --input ./data/prescriptions/dispense-bundle.json
 ```
 
 **Options:**
@@ -436,13 +440,13 @@ fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./
 |---|---|---|
 | `--action <action>` | Dispensing action: `release`, `return`, `dispense`, `withdraw`, `claim` | `release` |
 | `--prescription-id <id>` | Short-form prescription ID | required (except app-restricted release) |
-| `--input <file>` | Path to request body JSON | optional for release, required for dispense/claim |
+| `--input <file>` | Path to request body JSON | optional for release/withdraw, required for dispense/claim |
 | `--app-restricted` | Use app-restricted auth with `$release-unattended` | `false` |
 | `--pharmacy-ods <code>` | Pharmacy ODS code override | auto-generated |
 | `--save-dir <directory>` | Directory to save response Bundle JSON | `./data/prescriptions` |
 | `--urid <urid>` | NHSD-Session-URID override | optional |
-| `--reason-code <code>` | Return reason code (required for `return`) | — |
-| `--reason-text <text>` | Human-readable return reason text | default for code |
+| `--reason-code <code>` | Reason code (required for `return` and `withdraw`) | — |
+| `--reason-text <text>` | Human-readable reason text | default for code |
 | `--reimbursement-authority <code>` | Reimbursement authority ODS code (for `dispense`) | — |
 | `--dispense-type <code>` | Dispense type code: `0001`–`0008` | `0001` |
 | `--charge-exemption <code>` | Prescription charge exemption code (for `claim`) | `0001` |
@@ -464,6 +468,18 @@ fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./
 | `0007` | Prescription cancelled |
 | `0008` | Prescription not found |
 | `0009` | Prescription item was not available |
+
+**Withdraw reason codes:**
+| Code | Description |
+|---|---|
+| `MU` | Medication Update |
+| `DA` | Dosage Amendment |
+| `PA` | Patient Allergy |
+| `OC` | Other Clinical |
+| `CS` | Clinical / Significant |
+| `RE` | Rejected / Expired |
+| `QU` | Query |
+| `ONC` | Other Non-Clinical |
 
 **Charge exemption codes (for claim):**
 | Code | Description |
@@ -514,6 +530,14 @@ fhir-dispensing --action claim --prescription-id 24F5DA-A83008-7EFE6Z --input ./
 4. Includes charge exemption, evidence, and business status codes
 5. Submits to `POST /fhir-dispensing/FHIR/R4/Claim`
 
+**What `withdraw` does:**
+
+1. Builds a FHIR Task resource with `status: "in-progress"` and `code: "abort"`
+2. Sets `statusReason` to the selected withdraw reason code from `EPS-task-dispense-withdraw-reason`
+3. Includes contained PractitionerRole and Organization resources
+4. If `--input` is provided, extracts NHS number and bundle identifier from the dispense notification bundle
+5. Submits to `POST /fhir-dispensing/FHIR/R4/Task`
+
 #### Programmatic API
 
 ```typescript
@@ -521,11 +545,13 @@ import {
   releaseTask,
   returnPrescription,
   dispenseNotification,
+  withdrawDispenseNotification,
   submitClaim,
   generateClaim,
   CHARGE_EXEMPTION_CODES,
   CLAIM_STATUS_CODES,
   RETURN_REASON_CODES,
+  WITHDRAW_REASON_CODES,
   DISPENSE_TYPE_CODES,
 } from "fhir-dispensing";
 
@@ -541,6 +567,19 @@ const result = await submitClaim(
   { host, token, urid },
 );
 console.log(result.response.status);
+
+// Withdraw a dispense notification
+const withdrawResult = await withdrawDispenseNotification(
+  {
+    prescriptionId: "24F5DA-A83008-7EFE6Z",
+    reasonCode: "MU",
+    pharmacyOds: "VNE51",
+    nhsNumber: "9449304130",
+    dispenseNotificationBundleId: "a14d4fc1-82a2-4a82-aae2-50e212e7b907",
+  },
+  { host, token, urid },
+);
+console.log(withdrawResult.response.status);
 ```
 
 ---

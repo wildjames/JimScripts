@@ -1,11 +1,11 @@
 # FHIR Dispensing
 
-Call EPS FHIR Dispensing endpoint `POST /FHIR/R4/Task/$release` or `POST /FHIR/R4/Task/$release-unattended`.
+Call EPS FHIR Dispensing endpoints for prescription release, return, dispense notification, withdraw, and claim.
 
 This package provides:
 
 - a CLI command: `fhir-dispensing`
-- a programmatic API to request prescription release from EPS
+- a programmatic API for EPS dispensing interactions
 
 ## Usage
 
@@ -17,7 +17,7 @@ Generate an attended release request body automatically with fake organisation a
 fhir-dispensing --prescription-id 24F5DA-A83008-7EFE6Z
 ```
 
-Select an action explicitly (currently only `release` is implemented):
+Select an action explicitly:
 
 ```bash
 fhir-dispensing --action release --prescription-id 24F5DA-A83008-7EFE6Z
@@ -41,6 +41,13 @@ Save the downloaded prescription Bundle to a specific directory:
 fhir-dispensing --prescription-id 24F5DA-A83008-7EFE6Z --save-dir ./data/prescriptions
 ```
 
+Withdraw a dispense notification (user-restricted only):
+
+```bash
+fhir-dispensing --action withdraw --prescription-id 24F5DA-A83008-7EFE6Z --reason-code MU
+fhir-dispensing --action withdraw --prescription-id 24F5DA-A83008-7EFE6Z --reason-code DA --input ./data/prescriptions/dispense-bundle.json
+```
+
 Options:
 
 - `--action <action>`: dispensing action (`release`, `return`, `dispense`, `withdraw`, `claim`); defaults to `release`
@@ -50,10 +57,12 @@ Options:
 - `--pharmacy-ods <code>`: optional owner Organization ODS code override; when the CLI generates or normalizes the request body, this value is applied to the owner Organization in the FHIR `Parameters`
 - `--save-dir <directory>`: directory to save the downloaded Bundle JSON (default: `./data/prescriptions`)
 - `--urid <urid>`: optional `NHSD-Session-URID` override for user-restricted `$release`
+- `--reason-code <code>`: reason code (required for `--action return` and `--action withdraw`)
+- `--reason-text <text>`: optional human-readable reason text override
 - `--request-id <uuid>`: override the `X-Request-ID` header value (default: random UUID)
 - `--correlation-id <uuid>`: override the `X-Correlation-ID` header value (default: random UUID)
 
-If you pass any action other than `release`, the CLI currently exits with a not implemented error. This is intentional groundwork for upcoming dispensing interactions.
+If you pass any action other than `release`, `return`, `dispense`, `withdraw`, or `claim`, the CLI exits with an error.
 
 On success, the CLI extracts the returned prescription `Bundle` from the EPS `Parameters` response and writes it to disk.
 Output file pattern:
@@ -255,3 +264,34 @@ const result = await releaseTask({
 
 console.log(result.response.status, result.responseBody);
 ```
+
+### Withdraw a dispense notification
+
+```typescript
+import { withdrawDispenseNotification } from "fhir-dispensing";
+
+const result = await withdrawDispenseNotification(
+  {
+    prescriptionId: "24F5DA-A83008-7EFE6Z",
+    reasonCode: "MU",
+    pharmacyOds: "VNE51",
+    nhsNumber: "9449304130",
+    dispenseNotificationBundleId: "a14d4fc1-82a2-4a82-aae2-50e212e7b907",
+  },
+  { host, token, urid },
+);
+console.log(result.response.status, result.responseBody);
+```
+
+## Withdraw reason codes
+
+| Code  | Description            |
+| ----- | ---------------------- |
+| `MU`  | Medication Update      |
+| `DA`  | Dosage Amendment       |
+| `PA`  | Patient Allergy        |
+| `OC`  | Other Clinical         |
+| `CS`  | Clinical / Significant |
+| `RE`  | Rejected / Expired     |
+| `QU`  | Query                  |
+| `ONC` | Other Non-Clinical     |

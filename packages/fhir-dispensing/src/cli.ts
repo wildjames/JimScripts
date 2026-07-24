@@ -17,6 +17,10 @@ import {
 import { releaseTask } from "./release.js";
 import { returnPrescription, RETURN_REASON_CODES } from "./return.js";
 import { dispenseNotification, DISPENSE_TYPE_CODES } from "./dispense.js";
+import {
+  withdrawDispenseNotification,
+  WITHDRAW_REASON_CODES,
+} from "./withdraw.js";
 import { submitClaim, CHARGE_EXEMPTION_CODES } from "./claim.js";
 import {
   getEnv,
@@ -89,11 +93,11 @@ async function main(): Promise<void> {
     .option("--pharmacy-ods <code>", "Pharmacy ODS code for the release owner")
     .option(
       "--reason-code <code>",
-      "Return reason code from EPS-task-dispense-return-status-reason CodeSystem (required for --action return)",
+      "Reason code (required for --action return and --action withdraw)",
     )
     .option(
       "--reason-text <text>",
-      "Optional human-readable return reason text (overrides the default display for the reason code)",
+      "Optional human-readable reason text (overrides the default display for the reason code)",
     )
     .option(
       "--reimbursement-authority <code>",
@@ -182,6 +186,21 @@ async function main(): Promise<void> {
   if (action === "return" && options.appRestricted) {
     throw new Error(
       "Action 'return' only supports user-restricted authentication",
+    );
+  }
+
+  if (action === "withdraw" && !options.reasonCode) {
+    const validCodes = Object.entries(WITHDRAW_REASON_CODES)
+      .map(([code, display]) => `  ${code} - ${display}`)
+      .join("\n");
+    throw new Error(
+      `--reason-code is required for action 'withdraw'. Valid codes:\n${validCodes}`,
+    );
+  }
+
+  if (action === "withdraw" && options.appRestricted) {
+    throw new Error(
+      "Action 'withdraw' only supports user-restricted authentication",
     );
   }
 
@@ -328,8 +347,77 @@ async function main(): Promise<void> {
       );
       break;
     }
-    case "withdraw":
-      throw new Error("Action 'withdraw' is not implemented yet");
+    case "withdraw": {
+      // If --input is provided, extract NHS number and bundle identifier from the dispense notification
+      let nhsNumber: string | undefined;
+      let dispenseNotificationBundleId: string | undefined;
+      if (options.input) {
+        const withdrawInput = loadParameters(options.input) as Record<
+          string,
+          unknown
+        >;
+        // Try to extract bundle identifier
+        const identifier = withdrawInput.identifier as
+          | { value?: string }
+          | undefined;
+        dispenseNotificationBundleId = identifier?.value;
+
+        // Try to extract NHS number from Patient entry or MedicationDispense.subject
+        const entries = (withdrawInput.entry ?? []) as Array<{
+          resource?: Record<string, unknown>;
+        }>;
+        const patient = entries.find(
+          (e) => e.resource?.resourceType === "Patient",
+        );
+        if (patient?.resource) {
+          const identifiers = (patient.resource.identifier ?? []) as Array<{
+            system?: string;
+            value?: string;
+          }>;
+          nhsNumber = identifiers.find(
+            (id) => id.system === "https://fhir.nhs.uk/Id/nhs-number",
+          )?.value;
+        }
+
+        // Fallback: extract from MedicationDispense.subject.identifier
+        if (!nhsNumber) {
+          const dispenseEntry = entries.find(
+            (e) => e.resource?.resourceType === "MedicationDispense",
+          );
+          if (dispenseEntry?.resource) {
+            const subject = dispenseEntry.resource.subject as
+              | { identifier?: { system?: string; value?: string } }
+              | undefined;
+            if (
+              subject?.identifier?.system ===
+              "https://fhir.nhs.uk/Id/nhs-number"
+            ) {
+              nhsNumber = subject.identifier.value;
+            }
+          }
+        }
+      }
+
+      result = await withdrawDispenseNotification(
+        {
+          prescriptionId: options.prescriptionId!,
+          reasonCode: options.reasonCode!,
+          reasonText: options.reasonText,
+          pharmacyOds: options.pharmacyOds,
+          nhsNumber,
+          dispenseNotificationBundleId,
+        },
+        {
+          host,
+          token,
+          urid,
+          requestSaveDir: options.saveDir,
+          requestId: options.requestId,
+          correlationId: options.correlationId,
+        },
+      );
+      break;
+    }
     case "claim": {
       if (!options.input) {
         throw new Error(

@@ -38,6 +38,14 @@ export {
 } from "./claim.js";
 
 export {
+  generateWithdrawTask,
+  withdrawDispenseNotification,
+  WITHDRAW_REASON_CODES,
+  type WithdrawTaskOptions,
+  type WithdrawRequestOptions,
+} from "./withdraw.js";
+
+export {
   getEnv,
   loadPrivateKey,
   loadParameters,
