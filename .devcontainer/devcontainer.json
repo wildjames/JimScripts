@@ -1,7 +1,7 @@
 {
   "name": "EPS TypeScript Tools",
   "image": "mcr.microsoft.com/devcontainers/typescript-node:1-18-bookworm",
-  "postCreateCommand": "make install && npx --prefix packages playwright install --with-deps",
+  "postCreateCommand": "make install && npx --prefix packages playwright install --with-deps && make link",
   "mounts": [
     "source=${env:HOME}${env:USERPROFILE}/.ssh,target=/home/node/.ssh,type=bind",
     "source=${env:HOME}${env:USERPROFILE}/.gnupg,target=/home/node/.gnupg,type=bind"

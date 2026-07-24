@@ -8,7 +8,13 @@ Utilities for NHS EPS testing and message generation, including:
 - PSU generation and submission
 - PfP retrieval and PfP-to-PSU interactive workflows
 
-This repository is an npm workspace monorepo with one TypeScript package per tool. All CLI tools have a `-h` option to print their usage.
+This repository is an npm workspace monorepo with one TypeScript package per tool.
+All CLI tools have a `-h` option to print their usage.
+
+Note that I have added an `AGENTS.md` for vibe-coding new interactions more reliably,
+and the repo contains a `SKILL.md` file. You should be able to set up an environment
+file, open copilot, and say something like "Create me 10 prescriptions, and tell me
+their prescription IDs" and it will do it.
 
 ## Setup
 

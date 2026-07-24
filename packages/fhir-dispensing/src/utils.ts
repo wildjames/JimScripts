@@ -75,7 +75,9 @@ export function saveRequest(
 
   const timestamp = generateTimestamp();
   const ids =
-    requestId && correlationId ? `_${requestId}:${correlationId}` : "";
+    requestId && correlationId
+      ? `_reqid_${requestId}_corrid_${correlationId}`
+      : "";
   const fileName = `${timestamp}_${action}${ids}_request.json`;
   const outputPath = join(saveDir, fileName);
 
@@ -96,7 +98,9 @@ export function saveResponse(
 
   const timestamp = generateTimestamp();
   const ids =
-    requestId && correlationId ? `_${requestId}:${correlationId}` : "";
+    requestId && correlationId
+      ? `_reqid_${requestId}_corrid_${correlationId}`
+      : "";
   const fileName = `${timestamp}_${action}${ids}_response.json`;
   const outputPath = join(saveDir, fileName);
 
